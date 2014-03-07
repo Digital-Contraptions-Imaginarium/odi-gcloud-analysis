@@ -1,3 +1,5 @@
+var MAX_PRODUCT_FETCH_QUEUE = 3;
+
 var async = require('async'),
 	cheerio = require('cheerio'),
 	request = require('request'),
@@ -9,7 +11,7 @@ var server = restify.createServer({
 
 server.listen(8080);
 
-function fetchProductByFullIdentifier (fullIdentifier, callback) {
+var fetchProductByFullIdentifier = async.queue(function (fullIdentifier, callback) {
 	request('http://govstore.service.gov.uk/cloudstore/' + fullIdentifier, function (error, response, html) {
 		var product = null;
 		if (!error && response.statusCode == 200) {
@@ -33,10 +35,10 @@ function fetchProductByFullIdentifier (fullIdentifier, callback) {
 		} 
 		callback(error, product);
 	});
-}
+}, MAX_PRODUCT_FETCH_QUEUE);
 
 server.get('/id/:id', function (req, res, next) {
-	fetchProductByFullIdentifier(req.params.id, function (err, product) {
+	fetchProductByFullIdentifier.push(req.params.id, function (err, product) {
 		res.send({ results: [ product ] });
 		next();
 	});
@@ -52,7 +54,7 @@ server.get('/search/:searchString', function send(req, res, next) {
 				fullIdentifiers.push($('.desc.std strong a', this).attr('href').split("http://govstore.service.gov.uk/cloudstore/")[1]);
 			});
 			async.map(fullIdentifiers, function (fullIdentifier, callback) {
-				fetchProductByFullIdentifier(fullIdentifier, function(err, product) {
+				fetchProductByFullIdentifier.push(fullIdentifier, function(err, product) {
 					callback(null, product);
 				});
 			}, function (err, products) {
