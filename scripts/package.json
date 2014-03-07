@@ -1,37 +1,39 @@
 {
-  "name": "odi-gcloud-analysis",
-  "version": "0.0.1",
-  "description": "",
-  "author": {
-    "name": "Gianfranco Cecconi",
-    "email": "gianfranco.cecconi@digitalcontraptionsimaginarium.co.uk",
-    "url": "http://www.digitalcontraptionsimaginarium.co.uk"
-  },
-  "contributors": [ 
-    {
-      "name": "Gianfranco Cecconi",
-      "email": "gianfranco.cecconi@digitalcontraptionsimaginarium.co.uk"
-    } 
-  ],
-  "homepage": "https://github.com/giacecco/twitter-word-trends",
-  "repository": { 
-    "type": "git", 
-    "url": "git://github.com/giacecco/twitter-word-trends.git"
-  },
-  "bugs": { 
-    "url": "https://github.com/giacecco/twitter-word-trends/issues" 
-  },
-  "keywords": [
-    "UK", "government", "procurement"
-  ],
-  "dependencies" : {
-    "async": ">=0.2.10",
-    "cheerio": ">=0.13.1",
-    "csv": ">=0.3.7",
-    "optimist": ">=0.6.1"
-  },
-  "license": "CC-BY 4.0",
-  "engines": {
-    "node": ">=0.10.26"
-  }
+    "name": "odi-gcloud-analysis",
+    "version": "0.0.1",
+    "description": "",
+    "author": {
+        "name": "Gianfranco Cecconi",
+        "email": "gianfranco.cecconi@digitalcontraptionsimaginarium.co.uk",
+        "url": "http://www.digitalcontraptionsimaginarium.co.uk"
+        },
+    "contributors": [ 
+        {
+          "name": "Gianfranco Cecconi",
+          "email": "gianfranco.cecconi@digitalcontraptionsimaginarium.co.uk"
+        } 
+    ],
+    "homepage": "https://github.com/Digital-Contraptions-Imaginarium/odi-gcloud-analysis",
+    "repository": { 
+        "type": "git", 
+        "url": "https://github.com/Digital-Contraptions-Imaginarium/odi-gcloud-analysis.git"
+    },
+    "bugs": { 
+        "url": "https://github.com/Digital-Contraptions-Imaginarium/odi-gcloud-analysis/issues" 
+    },
+    "keywords": [
+        "UK", "government", "procurement"
+    ],
+    "dependencies" : {
+        "async": ">=0.2.10",
+        "cheerio": ">=0.13.1",
+        "csv": ">=0.3.7",
+        "optimist": ">=0.6.1",
+        "request": ">=2.34.0",
+        "restify": ">=2.6.3"
+    },
+    "license": "CC-BY 4.0",
+    "engines": {
+        "node": ">=0.10.26"
+    }
 }
