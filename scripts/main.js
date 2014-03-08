@@ -20,13 +20,13 @@ var log = function (s) {
 	}
 }
 
-var fetchProductById = function (fullIdentifier, callback) {
+var fetchProductById = function (productId, callback) {
 	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
-		request('http://govstore.service.gov.uk/cloudstore/' + fullIdentifier, function (error, response, html) {
+		request('http://govstore.service.gov.uk/cloudstore/' + productId, function (error, response, html) {
 			var product = null;
 			if (!error && response.statusCode == 200) {
 				var $ = cheerio.load(html);
-				product = { details: { }, supplier: { }, docs: { } };
+				product = { id: productId, details: { }, supplier: { }, docs: { } };
 				product.name = $('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text();
 				product.sku = $('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1];
 				product.supplier.name = $('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1];
@@ -94,13 +94,14 @@ var fullTextSearch = function (searchText, callback) {
 log("Fetching the full list of product ids matching a full text search of 'data'...");
 fullTextSearch("data", function (err, productIds) {
 	log("Fetched " + productIds.length + " product ids.");
-	async.eachSeries(productIds, function (productId, callback) {
+	async.map(productIds, function (productId, callback) {
 		log("Fetching produt information for id " + productId + "...");
 		fetchProductById(productId, function (err, product) {
-			fs.writeFileSync("dump/" + productId + ".json", JSON.stringify(product));
-			callback(null);
+			callback(null, product);
 		});
-	}, function (err) {
+	}, function (err, products) {
+		log("Saving...");
+		fs.writeFileSync("products.json", JSON.stringify(products));
 		log("Finished!");
 	});
 });
