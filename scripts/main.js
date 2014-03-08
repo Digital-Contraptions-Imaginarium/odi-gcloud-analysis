@@ -1,6 +1,6 @@
 var argv = require("optimist")
-		.usage('Usage: $0 --out <output JSON filename>')
-		// .alias("port", "p")
+		.usage('Usage: $0 --out <output JSON filename> [--quiet]')
+		.alias("quiet", "q")
 		// .default("port", "8080")
 		.argv,
 	async = require('async'),
@@ -13,12 +13,14 @@ var argv = require("optimist")
 var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
 	LIST_FETCH_THROTTLING = new RateLimiter(300, 'hour');
 
-var categories = null,
-	server = restify.createServer({
-		name: 'odi-gcloud-proxy',
-	});
+var log = function (s) {
+	if (!argv.quiet) {
+	    var entryDate = new Date();
+	    console.log(entryDate.getFullYear() + "/" + (entryDate.getMonth() < 9 ? '0' : '') + (entryDate.getMonth() + 1) + "/" + (entryDate.getDate() < 10 ? '0' : '') + entryDate.getDate() + " " + (entryDate.getHours() < 10 ? '0' : '') + entryDate.getHours() + ":" + (entryDate.getMinutes() < 10 ? '0' : '') + entryDate.getMinutes() + ":" + (entryDate.getSeconds() < 10 ? '0' : '') + entryDate.getSeconds() + " - " + s);
+	}
+}
 
-var fetchProductByFullIdentifier = function (fullIdentifier, callback) {
+var fetchProductById = function (fullIdentifier, callback) {
 	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
 		request('http://govstore.service.gov.uk/cloudstore/' + fullIdentifier, function (error, response, html) {
 			var product = null;
@@ -49,7 +51,6 @@ var fetchProductByFullIdentifier = function (fullIdentifier, callback) {
 var fullTextSearchPage = function (searchText, pageNo, callback) {
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		// Note that the call below can return duplicate results!
-		console.log('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + searchText);
 		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + searchText, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching the a list of products. Exiting...");
@@ -88,3 +89,18 @@ var fullTextSearch = function (searchText, callback) {
 		});
 	});
 };
+
+
+log("Fetching the full list of product ids matching a full text search of 'data'...");
+fullTextSearch("data", function (err, productIds) {
+	log("Fetched " + productIds.length + " product ids.");
+	async.eachSeries(productIds, function (productId, callback) {
+		log("Fetching produt information for id  " + productId + "...");
+		fetchProductById(productId, function (err, product) {
+			fs.writeFileSync("dump/" + productId + ".json", JSON.stringify(product));
+			callback(null);
+		});
+	}, function (err) {
+		log("Finished!");
+	});
+});
