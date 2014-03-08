@@ -94,7 +94,7 @@ var fullTextSearch = function (searchText, callback) {
 log("Fetching the full list of product ids matching a full text search of 'data'...");
 fullTextSearch("data", function (err, productIds) {
 	log("Fetched " + productIds.length + " product ids.");
-	async.map(productIds, function (productId, callback) {
+	async.mapSeries(productIds, function (productId, callback) {
 		log("Fetching produt information for id " + productId + "...");
 		fetchProductById(productId, function (err, product) {
 			callback(null, product);
