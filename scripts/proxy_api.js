@@ -4,7 +4,8 @@ var async = require('async'),
 	RateLimiter = require('limiter').RateLimiter,
 	restify = require('restify');
 
-var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour');
+var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
+	CATEGORY_FETCH_THROTTLING = new RateLimiter(300, 'hour');
 
 var categories = null,
 	server = restify.createServer({
@@ -51,6 +52,47 @@ var fetchAllCategories = function (callback) {
 		}, callback);	
 	});
 }
+
+var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
+	request('http://govstore.service.gov.uk/cloudstore/saas/accessibility/where/p/1', function (error, response, html) {
+		if (error || response.statusCode != 200) {
+			console.log("Error fetching the a list of products. Exiting...");
+			process.exit(1);
+		}
+		var $ = cheerio.load(html),
+			temp = $('div.m-block.mb-category-products div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/),
+			pageSize = temp[2] - temp[1] + 1,
+			noOfPages = Math.ceil(temp[3] / pageSize);
+		async.reduce(Array.apply(null, Array(noOfPages)).map(function (_, i) {return i + 1;}), [ ], function (memo, pageNo, callback) {
+			fetchProductsIdsByCategoryURLPageNo(categoryUrl, pageNo, function (err, results) {
+				callback(err, memo.concat(results));
+			});
+		}, callback);
+	});
+}
+
+var fetchProductsIdsByCategoryURLPageNo = function (categoryUrl, pageNo, callback) {
+	var productIds = [ ];
+	CATEGORY_FETCH_THROTTLING.removeTokens(1, function () {
+		request('http://govstore.service.gov.uk/cloudstore/saas/accessibility/where/p/' + pageNo, function (error, response, html) {
+			if (error || response.statusCode != 200) {
+				console.log("Error fetching a list of products. Exiting...");
+				process.exit(1);
+			}
+			var $ = cheerio.load(html);
+			$('#products-list li').each(function (i, element) {
+				// TODO: how is it possible here that I match more a's than the
+				// expected ones, and that they do not have href attributes?
+				var found = $('div.product-shop.grid12-9.persistent-grid2-1 div h2 a', this).attr('href');
+				if (found) {
+					productIds.push(found.match(/[^\/]+$/)[0]);
+				}
+			});
+			callback(null, productIds);
+		});
+	});
+}
+
 var fetchProductByFullIdentifier = function (fullIdentifier, callback) {
 	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
 		request('http://govstore.service.gov.uk/cloudstore/' + fullIdentifier, function (error, response, html) {
@@ -122,5 +164,7 @@ server.get('/categories', function (req, res, next) {
 	}
 });
 
-server.listen(8080);
-
+// server.listen(8080);
+fetchProductsIdsByCategoryURL("http://govstore.service.gov.uk/cloudstore/saas/accessibility", function (err, results) {
+	console.log(results.length);
+});
