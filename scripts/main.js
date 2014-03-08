@@ -10,7 +10,7 @@ var argv = require("optimist")
 	RateLimiter = require('limiter').RateLimiter,
 	_ = require('underscore');
 
-var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
+var PRODUCT_FETCH_THROTTLING = new RateLimiter(4904 / 7, 'hour'),
 	LIST_FETCH_THROTTLING = new RateLimiter(300, 'hour');
 
 var log = function (s) {
@@ -95,7 +95,7 @@ log("Fetching the full list of product ids matching a full text search of 'data'
 fullTextSearch("data", function (err, productIds) {
 	log("Fetched " + productIds.length + " product ids.");
 	async.eachSeries(productIds, function (productId, callback) {
-		log("Fetching produt information for id  " + productId + "...");
+		log("Fetching produt information for id " + productId + "...");
 		fetchProductById(productId, function (err, product) {
 			fs.writeFileSync("dump/" + productId + ".json", JSON.stringify(product));
 			callback(null);
