@@ -1,4 +1,4 @@
-## Proxy API
+## Proxy API server
 The following APIs ara available:
 
 - */id/[full identifier]* - Returns the full data for the requested product. 
@@ -25,3 +25,7 @@ categories, e.g.
 
 - */list/[name of top level]/[name of second level]* - Returns a list of all
 product identifiers in the category
+
+## Dump command line utility
+The *dump.js* scripts dumps the contents of the CloudStore website by using the 
+proxy API server described above.

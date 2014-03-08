@@ -1,4 +1,6 @@
-var restify = require('restify');
+var async = require('async'),
+	restify = require('restify'),
+	_ = require('underscore');
 
 var client = restify.createJsonClient({
 	url: 'http://localhost:8080',
@@ -12,7 +14,7 @@ var getFlattenedCategories = function (callback) {
 		Object.keys(categories).forEach(function (topCategoryKey) {
 			Object.keys(categories[topCategoryKey]).forEach(function (secondLevelCategoryKey) {
 				flattenedCategories.push({
-					firstLevel: topCategoryKey,
+					topLevel: topCategoryKey,
 					secondLevel: secondLevelCategoryKey,
 					url: categories[topCategoryKey][secondLevelCategoryKey].url
 				});
@@ -20,6 +22,25 @@ var getFlattenedCategories = function (callback) {
 		});
 		callback(null, flattenedCategories);
 	});
+};
+
+var getUniqueProductsIdList = function (callback) {
+	var productIds = [ ];
+	console.log("Fetching the list of categories...");
+	getFlattenedCategories(function (err, categories) {
+		async.eachSeries(categories, function (category, callback) {
+			console.log("Fetching the product ids in category: " + category.topLevel + " > " + category.secondLevel + "...");
+			client.get('/list/' + encodeURIComponent(category.topLevel) + '/' + encodeURIComponent(category.secondLevel), function(err, req, res, obj) {
+				productIds = _.uniq(productIds.concat(obj.results));
+				console.log("Fetched " + obj.results.length + " ids. Found so far " + productIds.length + " unique ids.");
+				callback(err);
+			});
+		}, function (err) {
+			callback(err, productIds);
+		});
+	});
 }
 
-
+getUniqueProductsIdList(function (err, productIds) {
+	// console.log(JSON.stringify(productIds));
+});

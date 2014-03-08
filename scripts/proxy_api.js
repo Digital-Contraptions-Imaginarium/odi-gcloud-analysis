@@ -57,15 +57,15 @@ var fetchAllCategories = async.memoize(function (callback) {
 });
 
 var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
-	request('http://govstore.service.gov.uk/cloudstore/saas/accessibility/where/p/1', function (error, response, html) {
+	request(categoryUrl, function (error, response, html) {
 		if (error || response.statusCode != 200) {
 			console.log("Error fetching the a list of products. Exiting...");
 			process.exit(1);
 		}
 		var $ = cheerio.load(html),
 			temp = $('div.m-block.mb-category-products div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/),
-			pageSize = temp[2] - temp[1] + 1,
-			noOfPages = Math.ceil(temp[3] / pageSize);
+			pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
+			noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
 		async.reduce(Array.apply(null, Array(noOfPages)).map(function (_, i) {return i + 1;}), [ ], function (memo, pageNo, callback) {
 			fetchProductsIdsByCategoryURLPageNo(categoryUrl, pageNo, function (err, results) {
 				callback(err, memo.concat(results));
