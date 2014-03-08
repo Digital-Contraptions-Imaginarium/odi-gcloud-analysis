@@ -1,11 +1,26 @@
-var async = require('async'),
+var argv = require("optimist")
+		.usage('Usage: $0 [--server <serverURI if not http://localhost:8080>] [--quiet]')
+		/*
+		.demand([ "memory", "search", "wwwroot" ])
+		*/
+		.alias("server", "s")
+		.default("server", "http://localhost:8080")
+		.argv,
+	async = require('async'),
 	restify = require('restify'),
 	_ = require('underscore');
 
 var client = restify.createJsonClient({
-	url: 'http://localhost:8080',
+	url: argv.server,
 	version: '*'
 });
+
+var log = function (s) {
+	if (!argv.quiet) {
+	    var entryDate = new Date();
+	    console.log(entryDate.getFullYear() + "/" + (entryDate.getMonth() < 9 ? '0' : '') + (entryDate.getMonth() + 1) + "/" + (entryDate.getDate() < 10 ? '0' : '') + entryDate.getDate() + " " + (entryDate.getHours() < 10 ? '0' : '') + entryDate.getHours() + ":" + (entryDate.getMinutes() < 10 ? '0' : '') + entryDate.getMinutes() + ":" + (entryDate.getSeconds() < 10 ? '0' : '') + entryDate.getSeconds() + " - " + s);
+	}
+}
 
 var getFlattenedCategories = function (callback) {
 	client.get('/categories', function(err, req, res, obj) {
@@ -26,13 +41,13 @@ var getFlattenedCategories = function (callback) {
 
 var getUniqueProductsIdList = function (callback) {
 	var productIds = [ ];
-	// console.log("Fetching the list of categories...");
+	log("Fetching the list of categories...");
 	getFlattenedCategories(function (err, categories) {
 		async.eachSeries(categories, function (category, callback) {
-			// console.log("Fetching the product ids in category: " + category.topLevel + " > " + category.secondLevel + "...");
-			client.get('/list/' + escape(category.topLevel) + '/' + escape(category.secondLevel), function(err, req, res, obj) {
+			log("Fetching the product ids in category: " + category.topLevel + " > " + category.secondLevel + "...");
+			client.get('/list/' + encodeURIComponent(category.topLevel) + '/' + encodeURIComponent(category.secondLevel), function(err, req, res, obj) {
 				productIds = _.uniq(productIds.concat(obj.results));
-				// console.log("Fetched " + obj.results.length + " ids. Found so far " + productIds.length + " unique ids.");
+				log("Fetched " + obj.results.length + " ids. Found so far " + productIds.length + " unique ids.");
 				callback(err);
 			});
 		}, function (err) {

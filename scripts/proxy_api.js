@@ -1,4 +1,9 @@
-var async = require('async'),
+var argv = require("optimist")
+		.usage('Usage: $0 [--port <server port if not 8080>]')
+		.alias("port", "p")
+		.default("port", "8080")
+		.argv,
+	async = require('async'),
 	cheerio = require('cheerio'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
@@ -23,7 +28,7 @@ var fetchTopCategories = async.memoize(function (callback) {
 			categories = [ ];
 		$('#nav li.level0').each(function (i, element) {
 			categories.push({
-				name: $('a', this).eq(0).text().replace(/\n/g, '').toLowerCase(),
+				name: $('a', this).eq(0).text().replace(/\n/g, '').toLowerCase().replace(/\(\w+\)/, ""),
 				url: $('a', this).eq(0).attr('href')
 			});
 		});
@@ -47,7 +52,7 @@ var fetchAllCategories = async.memoize(function (callback) {
 				}
 				var $ = cheerio.load(html);
 				$('#narrow-by-list2 dd ol li').each(function (i, element) {
-					categories[topCategory.name][$('a', this).text().toLowerCase()] = { url: $('a', this).attr('href') };
+					categories[topCategory.name][$('a', this).text().toLowerCase().replace(/\(\w+\)/, "")] = { url: $('a', this).attr('href') };
 				});
 				callback(null);
 			});
@@ -67,7 +72,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 			temp = $('div.m-block.mb-category-products div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/),
 			pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
 			noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
-		async.reduce(_.range(1, noOfPages), [ ], function (memo, pageNo, callback) {
+		async.reduce(_.range(1, noOfPages + 1), [ ], function (memo, pageNo, callback) {
 			fetchProductsIdsByCategoryURLPageNo(categoryUrl, pageNo, function (err, results) {
 				callback(err, memo.concat(results));
 			});
@@ -92,7 +97,6 @@ var fetchProductsIdsByCategoryURLPageNo = function (categoryUrl, pageNo, callbac
 					productIds.push(found.match(/[^\/]+$/)[0]);
 				}
 			});
-			console.log("***DEBUG pageNo is " + pageNo + " and the last id is " + productIds[productIds.length - 1]);
 			callback(null, productIds);
 		});
 	});
@@ -133,6 +137,7 @@ server.get('/id/:id', function (req, res, next) {
 	});
 });
 
+/*
 server.get('/search/:searchString', function (req, res, next) {
 	// TODO: need to support multiple pages of results
 	request('http://govstore.service.gov.uk/cloudstore/search/?q=' + req.params.searchString, function (error, response, html) {
@@ -153,6 +158,7 @@ server.get('/search/:searchString', function (req, res, next) {
 		}
 	});
 });
+*/
 
 server.get('/categories', function (req, res, next) {
 	fetchAllCategories(function (err, categories) {
@@ -170,5 +176,5 @@ server.get('/list/:topLevel/:secondLevel', function (req, res, next) {
 	});
 });
 
-server.listen(8080);
+server.listen(parseInt(argv.port));
 

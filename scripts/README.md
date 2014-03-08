@@ -26,6 +26,14 @@ categories, e.g.
 - */list/[name of top level]/[name of second level]* - Returns a list of all
 product identifiers in the category
 
-## Dump command line utility
+## dump.js command line utility
+
 The *dump.js* scripts dumps the contents of the CloudStore website by using the 
-proxy API server described above.
+proxy API server described above. The default output format is json.
+
+As execution time is normally very long, the script by default writes to 
+standard output a log of its operations together with the actual data at 
+completion. By specifying the *--quiet* parameter only the data is output.
+
+    node dump.js --quiet > dump.json
+
