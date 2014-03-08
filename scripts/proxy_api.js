@@ -12,7 +12,7 @@ var categories = null,
 		name: 'odi-gcloud-proxy',
 	});
 
-var fetchTopCategories = function (callback) {
+var fetchTopCategories = async.memoize(function (callback) {
 	request('http://govstore.service.gov.uk/cloudstore/', function (error, response, html) {
 		if (error || response.statusCode != 200) {
 			console.log("Error fetching the top categories. Exiting...");
@@ -28,7 +28,7 @@ var fetchTopCategories = function (callback) {
 		});
 		callback(null, categories);
 	});
-}
+});
 
 var fetchAllCategories = async.memoize(function (callback) {
 	var categories = { };
@@ -72,7 +72,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 			});
 		}, callback);
 	});
-}
+};
 
 var fetchProductsIdsByCategoryURLPageNo = function (categoryUrl, pageNo, callback) {
 	var productIds = [ ];
