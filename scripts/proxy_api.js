@@ -5,18 +5,21 @@ var argv = require("optimist")
 		.argv,
 	async = require('async'),
 	cheerio = require('cheerio'),
+	fs = require('fs'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
 	restify = require('restify'),
 	_ = require('underscore');
 
 var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
-	CATEGORY_FETCH_THROTTLING = new RateLimiter(300, 'hour');
+	LIST_FETCH_THROTTLING = new RateLimiter(300, 'hour');
 
 var categories = null,
 	server = restify.createServer({
 		name: 'odi-gcloud-proxy',
 	});
+
+/*
 
 var fetchTopCategories = async.memoize(function (callback) {
 	request('http://govstore.service.gov.uk/cloudstore/', function (error, response, html) {
@@ -82,7 +85,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 
 var fetchProductsIdsByCategoryURLPageNo = function (categoryUrl, pageNo, callback) {
 	var productIds = [ ];
-	CATEGORY_FETCH_THROTTLING.removeTokens(1, function () {
+	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		request(categoryUrl + '/where/p/' + pageNo, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching a list of products. Exiting...");
@@ -130,36 +133,52 @@ var fetchProductByFullIdentifier = function (fullIdentifier, callback) {
 	});
 }
 
-server.get('/id/:id', function (req, res, next) {
-	fetchProductByFullIdentifier(req.params.id, function (err, product) {
-		res.send({ results: [ product ] });
-		next();
-	});
-});
-
-/*
-server.get('/search/:searchString', function (req, res, next) {
-	// TODO: need to support multiple pages of results
-	request('http://govstore.service.gov.uk/cloudstore/search/?q=' + req.params.searchString, function (error, response, html) {
-		if (!error && response.statusCode == 200) {
-			var $ = cheerio.load(html),
-				fullIdentifiers = [ ];
-			$('.product-shop-inner').each(function (i, element) {
-				fullIdentifiers.push($('.desc.std strong a', this).attr('href').split("http://govstore.service.gov.uk/cloudstore/")[1]);
-			});
-			async.map(fullIdentifiers, function (fullIdentifier, callback) {
-				fetchProductByFullIdentifier(fullIdentifier, function(err, product) {
-					callback(null, product);
-				});
-			}, function (err, products) {
-				res.send({ results: products });
-				next();
-			});
-		}
-	});
-});
 */
 
+var fullTextSearchPage = function (searchText, pageNo, callback) {
+	LIST_FETCH_THROTTLING.removeTokens(1, function () {
+		// Note that the call below can return duplicate results!
+		console.log('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + searchText);
+		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + searchText, function (error, response, html) {
+			if (error || response.statusCode != 200) {
+				console.log("Error fetching the a list of products. Exiting...");
+				process.exit(1);
+			}
+			var $ = cheerio.load(html),
+				productIds = [ ];
+			$('#products-list li').each(function (i, element) {
+				var temp = $('h2.product-name a', this).attr('href');
+				if (temp){
+					productIds.push(temp.match(/[^\/]+$/)[0]);
+				}
+			});
+			callback(null, _.uniq(productIds));
+		});
+	});
+}
+
+var fullTextSearch = function (searchText, callback) {
+	LIST_FETCH_THROTTLING.removeTokens(1, function () {
+		// Note that the call below can return duplicate results!
+		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + searchText, function (error, response, html) {
+			if (error || response.statusCode != 200) {
+				console.log("Error fetching the a list of products. Exiting...");
+				process.exit(1);
+			}
+			var $ = cheerio.load(html),
+				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p').text().match(/Items (\d+) to (\d+) of (\d+)/),
+				pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
+				noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
+			async.reduce(_.range(1, noOfPages + 1), [ ], function (memo, pageNo, callback) {
+				fullTextSearchPage(searchText, pageNo, function (err, results) {
+					callback(err, _.uniq(memo.concat(results)));
+				});
+			}, callback);
+		});
+	});
+};
+
+/*
 server.get('/categories', function (req, res, next) {
 	fetchAllCategories(function (err, categories) {
 		res.send({ results: categories });
@@ -175,6 +194,27 @@ server.get('/list/:topLevel/:secondLevel', function (req, res, next) {
 		});
 	});
 });
+*/
+
+// TODO: there likely is a better way to write the regex below
+server.get(/^\/searchIds\/(.*)/, function (req, res, next) {
+	fullTextSearch(req.params['0'].split('/').join('+or+'), function (err, productIds) {
+		res.send({ results: productIds });
+		next();
+	});
+});
+
+server.get('/id/:id', function (req, res, next) {
+	fetchProductByFullIdentifier(req.params.id, function (err, product) {
+		res.send({ results: [ product ] });
+		next();
+	});
+});
 
 server.listen(parseInt(argv.port));
-
+/*
+fullTextSearch("data", function (err, results) {
+	fs.writeFileSync("data_product_ids_with_duplicates.csv", results.join('\n'));
+	fs.writeFileSync("data_product_ids.csv", _.uniq(results).join('\n'));
+});
+*/

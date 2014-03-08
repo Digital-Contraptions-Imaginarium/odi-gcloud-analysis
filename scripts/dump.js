@@ -1,5 +1,5 @@
 var argv = require("optimist")
-		.usage('Usage: $0 [--out <output file if not stdout>] [--server <serverURI if not http://localhost:8080>] [--products <product ids json file>] [--quiet]')
+		.usage('Usage: $0 <search term 1> <search term 2> <...> [--out <output file if not stdout>] [--server <serverURI if not http://localhost:8080>] [--products <product ids json file>] [--quiet]')
 		/* .demand([ "memory", "search", "wwwroot" ]) */
 		.alias("out", "o")
 		.alias("server", "s")
@@ -22,6 +22,7 @@ var log = function (s) {
 	}
 }
 
+/*
 var getFlattenedCategories = function (callback) {
 	client.get('/categories', function(err, req, res, obj) {
 		var categories = obj.results,
@@ -56,17 +57,10 @@ var getUniqueProductsIdList = function (callback) {
 		});
 	});
 }
+*/
 
-var fetchProducts = function (productIds, callback) {
-	// DEBUG ONLY, INCOMPLETE
-	fs.writeFileSync(argv.out, JSON.stringify(productIds));
-	callback(null);
-};
+client.get('/searchIds/' + argv._.join("/"), function(err, req, res, obj) {
+	console.log(obj.results.length);
+});
 
-if (argv.products) {
-	fetchProducts(JSON.parse(fs.readFileSync(argv.products)), function (err) { });
-} else {
-	getUniqueProductsIdList(function (err, productIds) {
-		fetchProducts(productIds, function (err) { });
-	});	
-}
+
