@@ -2,7 +2,8 @@ var async = require('async'),
 	cheerio = require('cheerio'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
-	restify = require('restify');
+	restify = require('restify'),
+	_ = require('underscore');
 
 var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
 	CATEGORY_FETCH_THROTTLING = new RateLimiter(300, 'hour');
@@ -66,7 +67,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 			temp = $('div.m-block.mb-category-products div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/),
 			pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
 			noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
-		async.reduce(Array.apply(null, Array(noOfPages)).map(function (_, i) {return i + 1;}), [ ], function (memo, pageNo, callback) {
+		async.reduce(_.range(1, noOfPages), [ ], function (memo, pageNo, callback) {
 			fetchProductsIdsByCategoryURLPageNo(categoryUrl, pageNo, function (err, results) {
 				callback(err, memo.concat(results));
 			});
@@ -77,7 +78,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 var fetchProductsIdsByCategoryURLPageNo = function (categoryUrl, pageNo, callback) {
 	var productIds = [ ];
 	CATEGORY_FETCH_THROTTLING.removeTokens(1, function () {
-		request('http://govstore.service.gov.uk/cloudstore/saas/accessibility/where/p/' + pageNo, function (error, response, html) {
+		request(categoryUrl + '/where/p/' + pageNo, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching a list of products. Exiting...");
 				process.exit(1);
@@ -91,6 +92,7 @@ var fetchProductsIdsByCategoryURLPageNo = function (categoryUrl, pageNo, callbac
 					productIds.push(found.match(/[^\/]+$/)[0]);
 				}
 			});
+			console.log("***DEBUG pageNo is " + pageNo + " and the last id is " + productIds[productIds.length - 1]);
 			callback(null, productIds);
 		});
 	});

@@ -26,13 +26,13 @@ var getFlattenedCategories = function (callback) {
 
 var getUniqueProductsIdList = function (callback) {
 	var productIds = [ ];
-	console.log("Fetching the list of categories...");
+	// console.log("Fetching the list of categories...");
 	getFlattenedCategories(function (err, categories) {
 		async.eachSeries(categories, function (category, callback) {
-			console.log("Fetching the product ids in category: " + category.topLevel + " > " + category.secondLevel + "...");
-			client.get('/list/' + encodeURIComponent(category.topLevel) + '/' + encodeURIComponent(category.secondLevel), function(err, req, res, obj) {
+			// console.log("Fetching the product ids in category: " + category.topLevel + " > " + category.secondLevel + "...");
+			client.get('/list/' + escape(category.topLevel) + '/' + escape(category.secondLevel), function(err, req, res, obj) {
 				productIds = _.uniq(productIds.concat(obj.results));
-				console.log("Fetched " + obj.results.length + " ids. Found so far " + productIds.length + " unique ids.");
+				// console.log("Fetched " + obj.results.length + " ids. Found so far " + productIds.length + " unique ids.");
 				callback(err);
 			});
 		}, function (err) {
@@ -42,5 +42,5 @@ var getUniqueProductsIdList = function (callback) {
 }
 
 getUniqueProductsIdList(function (err, productIds) {
-	// console.log(JSON.stringify(productIds));
+	console.log(JSON.stringify(productIds));
 });
