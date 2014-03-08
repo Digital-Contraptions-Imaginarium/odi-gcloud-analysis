@@ -31,7 +31,6 @@
         "limiter": ">=1.0.5",
         "optimist": ">=0.6.1",
         "request": ">=2.34.0",
-        "restify": ">=2.6.3",
         "underscore": ">=1.6.0"
     },
     "license": "CC-BY 4.0",
