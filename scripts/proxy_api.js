@@ -30,28 +30,31 @@ var fetchTopCategories = function (callback) {
 	});
 }
 
-var fetchAllCategories = function (callback) {
+var fetchAllCategories = async.memoize(function (callback) {
+	var categories = { };
 	fetchTopCategories(function (err, topCategories) {
-		async.reduce(topCategories, [ ], function (memo, topCategory, callback) {
+		// eachSeries here is used just not to cause a burts of requests to
+		// the source website
+		async.eachSeries(topCategories, function (topCategory, callback) {
+			if (!categories[topCategory.name]) {
+				categories[topCategory.name] = { };
+			}
 			request(topCategory.url, function (error, response, html) {
-				var categories = [ ];
 				if (error || response.statusCode != 200) {
 					console.log("Error fetching the complete list of categories. Exiting...");
 					process.exit(1);
 				}
 				var $ = cheerio.load(html);
 				$('#narrow-by-list2 dd ol li').each(function (i, element) {
-					categories.push({
-						topLevel: topCategory.name,
-						secondLevel: $('a', this).text(),
-						url: $('a', this).attr('href')
-					})
+					categories[topCategory.name][$('a', this).text()] = { url: $('a', this).attr('href') };
 				});
-				callback(null, memo.concat(categories));
+				callback(null);
 			});
-		}, callback);	
+		}, function (err) {
+			callback(err, categories);
+		});	
 	});
-}
+});
 
 var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 	request('http://govstore.service.gov.uk/cloudstore/saas/accessibility/where/p/1', function (error, response, html) {
@@ -150,21 +153,20 @@ server.get('/search/:searchString', function (req, res, next) {
 });
 
 server.get('/categories', function (req, res, next) {
-	var respond = function () {
-		res.send(categories);
+	fetchAllCategories(function (err, categories) {
+		res.send({ results: categories });
 		next();		
-	};
-	if (!categories) {
-		fetchAllCategories(function (err, c) {
-			categories = { cached: new Date(), results: c };
-			respond();
-		});
-	} else {
-		respond();
-	}
+	})
 });
 
-// server.listen(8080);
-fetchProductsIdsByCategoryURL("http://govstore.service.gov.uk/cloudstore/saas/accessibility", function (err, results) {
-	console.log(results.length);
+server.get('/list/:topLevel/:secondLevel', function (req, res, next) {
+	fetchAllCategories(function (err, categories) {
+		fetchProductsIdsByCategoryURL(categories[req.params.topLevel][req.params.secondLevel].url, function (err, productIds) {
+			res.send({ results: productIds });
+			next();
+		});
+	});
 });
+
+server.listen(8080);
+
