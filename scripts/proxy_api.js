@@ -22,7 +22,7 @@ var fetchTopCategories = async.memoize(function (callback) {
 			categories = [ ];
 		$('#nav li.level0').each(function (i, element) {
 			categories.push({
-				name: $('a', this).eq(0).text().replace(/\n/g, ''),
+				name: $('a', this).eq(0).text().replace(/\n/g, '').toLowerCase(),
 				url: $('a', this).eq(0).attr('href')
 			});
 		});
@@ -46,7 +46,7 @@ var fetchAllCategories = async.memoize(function (callback) {
 				}
 				var $ = cheerio.load(html);
 				$('#narrow-by-list2 dd ol li').each(function (i, element) {
-					categories[topCategory.name][$('a', this).text()] = { url: $('a', this).attr('href') };
+					categories[topCategory.name][$('a', this).text().toLowerCase()] = { url: $('a', this).attr('href') };
 				});
 				callback(null);
 			});
@@ -161,7 +161,7 @@ server.get('/categories', function (req, res, next) {
 
 server.get('/list/:topLevel/:secondLevel', function (req, res, next) {
 	fetchAllCategories(function (err, categories) {
-		fetchProductsIdsByCategoryURL(categories[req.params.topLevel][req.params.secondLevel].url, function (err, productIds) {
+		fetchProductsIdsByCategoryURL(categories[req.params.topLevel.toLowerCase()][req.params.secondLevel.toLowerCase()].url, function (err, productIds) {
 			res.send({ results: productIds });
 			next();
 		});

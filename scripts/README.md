@@ -11,15 +11,17 @@ usually a combination of its name and the SKU.
 - */categories* - Returns a structured JSON object with the two levels of 
 categories, e.g.
 
-    { "results":
-        { "SaaS": {
-            "Accessibility": { "url":"http://govstore.service.gov.uk/cloudstore/saas/accessibility"},
-            "Agile Tools": {"url":"http://govstore.service.gov.uk/cloudstore/saas/agile-tools"},
-            (...)
-        },
-        { "PaaS": 
-        	(...)
-    	},
-    	(...)
-    }
+	    { "results":
+	        { "SaaS": {
+	            "Accessibility": { "url":"http://govstore.service.gov.uk/cloudstore/saas/accessibility"},
+	            "Agile Tools": {"url":"http://govstore.service.gov.uk/cloudstore/saas/agile-tools"},
+	            (...)
+	        },
+	        { "PaaS": 
+	        	(...)
+	    	},
+	    	(...)
+	    }
 
+- */list/[name of top level]/[name of second level]* - Returns a list of all
+product identifiers in the category
