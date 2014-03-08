@@ -1,12 +1,12 @@
 var argv = require("optimist")
-		.usage('Usage: $0 [--server <serverURI if not http://localhost:8080>] [--quiet]')
-		/*
-		.demand([ "memory", "search", "wwwroot" ])
-		*/
+		.usage('Usage: $0 [--out <output file if not stdout>] [--server <serverURI if not http://localhost:8080>] [--products <product ids json file>] [--quiet]')
+		/* .demand([ "memory", "search", "wwwroot" ]) */
+		.alias("out", "o")
 		.alias("server", "s")
 		.default("server", "http://localhost:8080")
 		.argv,
 	async = require('async'),
+	fs = require('fs'),
 	restify = require('restify'),
 	_ = require('underscore');
 
@@ -45,6 +45,7 @@ var getUniqueProductsIdList = function (callback) {
 	getFlattenedCategories(function (err, categories) {
 		async.eachSeries(categories, function (category, callback) {
 			log("Fetching the product ids in category: " + category.topLevel + " > " + category.secondLevel + "...");
+			log("The url is : " + '/list/' + encodeURIComponent(category.topLevel) + '/' + encodeURIComponent(category.secondLevel));
 			client.get('/list/' + encodeURIComponent(category.topLevel) + '/' + encodeURIComponent(category.secondLevel), function(err, req, res, obj) {
 				productIds = _.uniq(productIds.concat(obj.results));
 				log("Fetched " + obj.results.length + " ids. Found so far " + productIds.length + " unique ids.");
@@ -56,6 +57,16 @@ var getUniqueProductsIdList = function (callback) {
 	});
 }
 
-getUniqueProductsIdList(function (err, productIds) {
-	console.log(JSON.stringify(productIds));
-});
+var fetchProducts = function (productIds, callback) {
+	// DEBUG ONLY, INCOMPLETE
+	fs.writeFileSync(argv.out, JSON.stringify(productIds));
+	callback(null);
+};
+
+if (argv.products) {
+	fetchProducts(JSON.parse(fs.readFileSync(argv.products)), function (err) { });
+} else {
+	getUniqueProductsIdList(function (err, productIds) {
+		fetchProducts(productIds, function (err) { });
+	});	
+}
