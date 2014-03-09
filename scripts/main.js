@@ -12,7 +12,9 @@ var argv = require("optimist")
 	path = require('path'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
-	_ = require('underscore');
+	_ = require('underscore'),
+	_str = require('underscore.string');
+_.mixin(_str.exports());
 
 var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
 	LIST_FETCH_THROTTLING = new RateLimiter(300, 'hour');
@@ -31,20 +33,21 @@ var fetchProductById = function (productId, callback) {
 			if (!error && response.statusCode == 200) {
 				var $ = cheerio.load(html);
 				product = { id: productId, details: { }, supplier: { }, docs: { } };
-				product.name = $('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text();
-				product.sku = $('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1];
-				product.supplier.name = $('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1];
-				product.description = $('#short-desc').text();
+				product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
+				product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
+				product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
+				product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
+				product.description = _.trim($('#short-desc').text());
 				$('#full-attributes-table tr').each(function (i, element) {
 					if (!$(this).hasClass('details-tr')) {
-						product.details[$('th', this).text()] = $('td', this).text();
+						product.details[$('th', this).text()] = _.trim($('td', this).text());
 					}
 				});
 				$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
-					product.supplier[$('td', this).eq(0).text()] = $('td', this).eq(1).text();
+					product.supplier[$('td', this).eq(0).text()] = _.trim($('td', this).eq(1).text());
 				});
 				$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
-					product.docs[$('a', this).text()] = $('a', this).attr('href');
+					product.docs[$('a', this).text()] = _.trim($('a', this).attr('href'));
 				});
 			} 
 			callback(error, product);
@@ -96,61 +99,60 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 	});
 };
 
-
-log("Fetching the full list of product ids matching the specified search terms...");
-fullTextSearch(argv._, function (err, productIds) {
-	/*
-	log("Fetched " + productIds.length + " product ids.");
-	async.mapSeries(productIds, function (productId, callback) {
-		log("Fetching produt information for id " + productId + "...");
-		fetchProductById(productId, function (err, product) {
-			callback(null, product);
-		});
-	}, function (err, products) {
-		log("Saving...");
-		fs.writeFileSync("products.json", JSON.stringify(products));
-		log("Finished!");
-	});
-	*/
-	async.map(productIds, function (id, callback) {
-		fetchProductById(id, function (err, product) {
-			// this loop "flattens" the hierarchical structure of the record
-			[ "details", "supplier", "docs" ].forEach(function (groupName) {
-				Object.keys(product[groupName]).forEach(function (key) {
-					product[groupName + " - " + key] = product[groupName][key];
-				});
-				delete product[groupName];
+var dump = function () {
+	log("Fetching the full list of product ids matching the specified search terms...");
+	fullTextSearch(argv._, function (err, productIds) {
+		/*
+		log("Fetched " + productIds.length + " product ids.");
+		async.mapSeries(productIds, function (productId, callback) {
+			log("Fetching produt information for id " + productId + "...");
+			fetchProductById(productId, function (err, product) {
+				callback(null, product);
 			});
-			callback(null, product);
+		}, function (err, products) {
+			log("Saving...");
+			fs.writeFileSync("products.json", JSON.stringify(products));
+			log("Finished!");
 		});
-	}, function (err, products) {
-		csv()
-			.from.array(products)
-			.to.stream(fs.createWriteStream(path.join(__dirname, argv.out)), {
-					header: true,
-					columns: _.union(_.flatten(_.map(products, function (product) { return _.keys(product); }))).sort()
-					// newColumns: true
+		*/
+		async.map(productIds, function (id, callback) {
+			fetchProductById(id, function (err, product) {
+				// this loop "flattens" the hierarchical structure of the record
+				[ "details", "supplier", "docs" ].forEach(function (groupName) {
+					Object.keys(product[groupName]).forEach(function (key) {
+						product[groupName + " - " + key] = product[groupName][key];
+					});
+					delete product[groupName];
+				});
+				callback(null, product);
+			});
+		}, function (err, products) {
+			csv()
+				.from.array(products)
+				.to.stream(fs.createWriteStream(path.join(__dirname, argv.out)), {
+						header: true,
+						columns: _.union(_.flatten(_.map(products, function (product) { return _.keys(product); }))).sort()
+					})
+				.on('record', function (row, index) {
+					// log('#' + index + ' ' + JSON.stringify(row));
 				})
-			/*
-			.transform(function (row, index, callback) {
-				log("Fetching produt information for id " + row.id + "...");
-				fetchProductById(row.id, function (err, product) {
-					callback(null, [ row.id, row.sku ]);
+				.on('close', function (count) {
+					// when writing to a file, use the 'close' event
+					// the 'end' event may fire before the file has been written
+					log('Number of lines: ' + count);
+				})
+				.on('error', function (error) {
+					log(error.message);
 				});
-			})
-			*/
-			.on('record', function (row, index) {
-				// log('#' + index + ' ' + JSON.stringify(row));
-			})
-			.on('close', function (count) {
-				// when writing to a file, use the 'close' event
-				// the 'end' event may fire before the file has been written
-				log('Number of lines: ' + count);
-			})
-			.on('error', function (error) {
-				log(error.message);
-			});
 
-	});
+		});
 
+	});	
+}
+
+/*
+fetchProductById("acquia-elite-support-hosting", function (err, product) {
+	console.log(product.pricing);
 });
+*/
+dump();
