@@ -1,16 +1,20 @@
 var argv = require("optimist")
-		.usage('Usage: $0 --out <output JSON filename> [--quiet]')
+		.usage('Usage: $0 <fulltext search 1> [<fulltext search 2>] [<fulltext search ...>] --out <output CSV filename> [--quiet]')
+		.demand([ "out" ])
+		.alias("out", "o")
 		.alias("quiet", "q")
 		// .default("port", "8080")
 		.argv,
 	async = require('async'),
 	cheerio = require('cheerio'),
+	csv = require('csv'),
 	fs = require('fs'),
+	path = require('path'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
 	_ = require('underscore');
 
-var PRODUCT_FETCH_THROTTLING = new RateLimiter(4904 / 7, 'hour'),
+var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
 	LIST_FETCH_THROTTLING = new RateLimiter(300, 'hour');
 
 var log = function (s) {
@@ -48,10 +52,10 @@ var fetchProductById = function (productId, callback) {
 	});
 }
 
-var fullTextSearchPage = function (searchText, pageNo, callback) {
+var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		// Note that the call below can return duplicate results!
-		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + searchText, function (error, response, html) {
+		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching the a list of products. Exiting...");
 				process.exit(1);
@@ -69,10 +73,12 @@ var fullTextSearchPage = function (searchText, pageNo, callback) {
 	});
 }
 
-var fullTextSearch = function (searchText, callback) {
+var fullTextSearch = function (searchKeywordsArray, callback) {
+	searchKeywordsArray = [ ].concat(searchKeywordsArray || [ ]);
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
+		var encodedSearchText = encodeURIComponent(searchKeywordsArray.join("+or+"));
 		// Note that the call below can return duplicate results!
-		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + searchText, function (error, response, html) {
+		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching the a list of products. Exiting...");
 				process.exit(1);
@@ -82,7 +88,7 @@ var fullTextSearch = function (searchText, callback) {
 				pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
 				noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
 			async.reduce(_.range(1, noOfPages + 1), [ ], function (memo, pageNo, callback) {
-				fullTextSearchPage(searchText, pageNo, function (err, results) {
+				fullTextSearchPage(encodedSearchText, pageNo, function (err, results) {
 					callback(err, _.uniq(memo.concat(results)));
 				});
 			}, callback);
@@ -91,8 +97,9 @@ var fullTextSearch = function (searchText, callback) {
 };
 
 
-log("Fetching the full list of product ids matching a full text search of 'data'...");
-fullTextSearch("data", function (err, productIds) {
+log("Fetching the full list of product ids matching the specified search terms...");
+fullTextSearch(argv._, function (err, productIds) {
+	/*
 	log("Fetched " + productIds.length + " product ids.");
 	async.mapSeries(productIds, function (productId, callback) {
 		log("Fetching produt information for id " + productId + "...");
@@ -104,4 +111,46 @@ fullTextSearch("data", function (err, productIds) {
 		fs.writeFileSync("products.json", JSON.stringify(products));
 		log("Finished!");
 	});
+	*/
+	async.map(productIds, function (id, callback) {
+		fetchProductById(id, function (err, product) {
+			// this loop "flattens" the hierarchical structure of the record
+			[ "details", "supplier", "docs" ].forEach(function (groupName) {
+				Object.keys(product[groupName]).forEach(function (key) {
+					product[groupName + " - " + key] = product[groupName][key];
+				});
+				delete product[groupName];
+			});
+			callback(null, product);
+		});
+	}, function (err, products) {
+		csv()
+			.from.array(products)
+			.to.stream(fs.createWriteStream(path.join(__dirname, argv.out)), {
+					header: true,
+					columns: _.union(_.flatten(_.map(products, function (product) { return _.keys(product); }))).sort()
+					// newColumns: true
+				})
+			/*
+			.transform(function (row, index, callback) {
+				log("Fetching produt information for id " + row.id + "...");
+				fetchProductById(row.id, function (err, product) {
+					callback(null, [ row.id, row.sku ]);
+				});
+			})
+			*/
+			.on('record', function (row, index) {
+				// log('#' + index + ' ' + JSON.stringify(row));
+			})
+			.on('close', function (count) {
+				// when writing to a file, use the 'close' event
+				// the 'end' event may fire before the file has been written
+				log('Number of lines: ' + count);
+			})
+			.on('error', function (error) {
+				log(error.message);
+			});
+
+	});
+
 });
