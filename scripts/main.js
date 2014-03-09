@@ -1,15 +1,15 @@
 var argv = require("optimist")
-		.usage('Usage: $0 <fulltext search 1> [<fulltext search 2>] [<fulltext search ...>] --out <output CSV filename> [--quiet]')
+		.usage('Usage: $0 <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--tl <max list requests to server per hour>] [--td <max product details requests to server per hour>] [--quiet]')
 		.demand([ "out" ])
 		.alias("out", "o")
 		.alias("quiet", "q")
-		// .default("port", "8080")
+		.default("tl", 300)	
+		.default("td", 150)	
 		.argv,
 	async = require('async'),
 	cheerio = require('cheerio'),
 	csv = require('csv'),
 	fs = require('fs'),
-	path = require('path'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
 	// note that the version of underscore I am using is the latest specified
@@ -18,15 +18,13 @@ var argv = require("optimist")
 	_str = require('underscore.string');
 _.mixin(_str.exports());
 
-var PRODUCT_FETCH_THROTTLING = new RateLimiter(150, 'hour'),
-	LIST_FETCH_THROTTLING = new RateLimiter(300, 'hour');
+var PRODUCT_FETCH_THROTTLING = new RateLimiter(parseInt(argv.td), 'hour'),
+	LIST_FETCH_THROTTLING = new RateLimiter(parseInt(argv.tl), 'hour');
 
-var log = function (s) {
-	if (!argv.quiet) {
-	    var entryDate = new Date();
-	    console.log(entryDate.getFullYear() + "/" + (entryDate.getMonth() < 9 ? '0' : '') + (entryDate.getMonth() + 1) + "/" + (entryDate.getDate() < 10 ? '0' : '') + entryDate.getDate() + " " + (entryDate.getHours() < 10 ? '0' : '') + entryDate.getHours() + ":" + (entryDate.getMinutes() < 10 ? '0' : '') + entryDate.getMinutes() + ":" + (entryDate.getSeconds() < 10 ? '0' : '') + entryDate.getSeconds() + " - " + s);
-	}
-}
+var log = !argv.quiet ? function (s) {
+		    var entryDate = new Date();
+		    console.log(entryDate.getFullYear() + "/" + (entryDate.getMonth() < 9 ? '0' : '') + (entryDate.getMonth() + 1) + "/" + (entryDate.getDate() < 10 ? '0' : '') + entryDate.getDate() + " " + (entryDate.getHours() < 10 ? '0' : '') + entryDate.getHours() + ":" + (entryDate.getMinutes() < 10 ? '0' : '') + entryDate.getMinutes() + ":" + (entryDate.getSeconds() < 10 ? '0' : '') + entryDate.getSeconds() + " - " + s);
+		} : function () { };
 
 var fetchProductById = function (productId, callback) {
 	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
@@ -36,7 +34,7 @@ var fetchProductById = function (productId, callback) {
 				var $ = cheerio.load(html);
 				product = { id: productId, details: { }, supplier: { }, docs: { } };
 				product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
-				// Note that the reg exp below's objective is just to extract 
+				// note that the reg exp below's objective is just to extract 
 				// value off the clutter, not to get a valid, parseable number
 				product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
 				product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
@@ -50,6 +48,8 @@ var fetchProductById = function (productId, callback) {
 				$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
 					product.supplier[$('td', this).eq(0).text()] = _.trim($('td', this).eq(1).text());
 				});
+				// does the code below breaks if more documents have the same 
+				// name?
 				$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
 					product.docs[$('a', this).text()] = _.trim($('a', this).attr('href'));
 				});
@@ -61,7 +61,7 @@ var fetchProductById = function (productId, callback) {
 
 var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
-		// Note that the call below can return duplicate results!
+		// note that the call below can return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching the a list of products. Exiting...");
@@ -84,7 +84,7 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 	searchKeywordsArray = [ ].concat(searchKeywordsArray || [ ]);
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		var encodedSearchText = encodeURIComponent(searchKeywordsArray.join("+or+"));
-		// Note that the call below can return duplicate results!
+		// note that the call below can return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode != 200) {
 				console.log("Error fetching the a list of products. Exiting...");
@@ -103,9 +103,9 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 	});
 };
 
-var dump = function () {
+var dump = function (searchKeywordsArray, outputFilename, callback) {
 	log("Fetching the full list of product ids matching the specified search terms...");
-	fullTextSearch(argv._, function (err, productIds) {
+	fullTextSearch(searchKeywordsArray, function (err, productIds) {
 		async.map(productIds, function (id, callback) {
 			fetchProductById(id, function (err, product) {
 				log("Fetching product detail data for product id " + id);
@@ -121,24 +121,20 @@ var dump = function () {
 		}, function (err, products) {
 			csv()
 				.from.array(products)
-				.to.stream(fs.createWriteStream(path.join(__dirname, argv.out)), {
+				.to.stream(fs.createWriteStream(outputFilename), {
 						header: true,
+						// the line below identifies all possible column names
+						// as the union of the defined keys of each product
 						columns: _.union(_.flatten(_.map(products, function (product) { return _.keys(product); }))).sort()
 					})
-				.on('record', function (row, index) {
-					// log('#' + index + ' ' + JSON.stringify(row));
-				})
 				.on('close', function (count) {
-					// when writing to a file, use the 'close' event
-					// the 'end' event may fire before the file has been written
-					log('Number of lines: ' + count);
+					log('Writing completed. Number of records processed: ' + count);
+					callback(null);
 				})
 				.on('error', function (error) {
 					log(error.message);
 				});
-
 		});
-
 	});	
 }
 
@@ -147,4 +143,4 @@ fetchProductById("acquia-elite-support-hosting", function (err, product) {
 	console.log(product.pricing);
 });
 */
-dump();
+dump(argv._, argv.out, function () { });
