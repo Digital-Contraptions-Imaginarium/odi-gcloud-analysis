@@ -12,6 +12,8 @@ var argv = require("optimist")
 	path = require('path'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
+	// note that the version of underscore I am using is the latest specified
+	// as compatible by underscore.string at the moment of writing
 	_ = require('underscore'),
 	_str = require('underscore.string');
 _.mixin(_str.exports());
@@ -34,6 +36,8 @@ var fetchProductById = function (productId, callback) {
 				var $ = cheerio.load(html);
 				product = { id: productId, details: { }, supplier: { }, docs: { } };
 				product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
+				// Note that the reg exp below's objective is just to extract 
+				// value off the clutter, not to get a valid, parseable number
 				product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
 				product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
 				product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
@@ -102,21 +106,9 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 var dump = function () {
 	log("Fetching the full list of product ids matching the specified search terms...");
 	fullTextSearch(argv._, function (err, productIds) {
-		/*
-		log("Fetched " + productIds.length + " product ids.");
-		async.mapSeries(productIds, function (productId, callback) {
-			log("Fetching produt information for id " + productId + "...");
-			fetchProductById(productId, function (err, product) {
-				callback(null, product);
-			});
-		}, function (err, products) {
-			log("Saving...");
-			fs.writeFileSync("products.json", JSON.stringify(products));
-			log("Finished!");
-		});
-		*/
 		async.map(productIds, function (id, callback) {
 			fetchProductById(id, function (err, product) {
+				log("Fetching product detail data for product id " + id);
 				// this loop "flattens" the hierarchical structure of the record
 				[ "details", "supplier", "docs" ].forEach(function (groupName) {
 					Object.keys(product[groupName]).forEach(function (key) {
