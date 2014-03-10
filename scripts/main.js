@@ -32,6 +32,13 @@ var log = !argv.quiet ? function (s) {
 		} : function () { };
 
 var fetchProductById = function (productId, callback) {
+
+	var columnRename = function (fieldName) {
+		fieldName = _.trim(fieldName);
+		var fieldReplacement = _.find(FIELDS_RENAME_MAP, function (rule) { return rule.from === fieldName; });
+		return fieldReplacement ? fieldReplacement.to : _.underscored(fieldName.replace(/[^\w ]/g, "").toLowerCase());
+	}
+
 	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
 		request('http://govstore.service.gov.uk/cloudstore/' + productId, function (error, response, html) {
 			var product = null;
@@ -50,22 +57,16 @@ var fetchProductById = function (productId, callback) {
 			product.description = _.trim($('#short-desc').text());
 			$('#full-attributes-table tr').each(function (i, element) {
 				if (!$(this).hasClass('details-tr')) {
-					var fieldName = _.trim($('th', this).text()),
-						fieldReplacement = _.find(FIELDS_RENAME_MAP, function (rule) { return rule.from === fieldName; });
-					if(fieldReplacement) fieldName = fieldReplacement.to;
-					product.details[fieldName] = _.trim($('td', this).text());
+					product.details[columnRename($('th', this).text())] = _.trim($('td', this).text());
 				}
 			});
 			$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
-				var fieldName = _.trim($('td', this).eq(0).text()),
-					fieldReplacement = _.find(FIELDS_RENAME_MAP, function (rule) { return rule.from === fieldName; });
-				if(fieldReplacement) fieldName = fieldReplacement.to;
-				product.supplier[fieldName] = _.trim($('td', this).eq(1).text());
+				product.supplier[columnRename($('td', this).eq(0).text())] = _.trim($('td', this).eq(1).text());
 			});
 			// does the code below breaks if more documents have the same 
 			// name?
 			$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
-				product.docs[$('a', this).text()] = _.trim($('a', this).attr('href'));
+				product.docs[columnRename($('a', this).text())] = _.trim($('a', this).attr('href'));
 			});
 			callback(error, product);
 		});
@@ -140,7 +141,7 @@ var dump = function (searchKeywordsArray, outputFilename, callback) {
 				// this loop "flattens" the hierarchical structure of the record
 				[ "details", "supplier", "docs" ].forEach(function (groupName) {
 					Object.keys(product[groupName]).forEach(function (key) {
-						product[groupName + " - " + key] = product[groupName][key];
+						product[groupName + "_" + key] = product[groupName][key];
 					});
 					delete product[groupName];
 				});
