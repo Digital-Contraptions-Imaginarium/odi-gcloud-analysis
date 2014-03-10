@@ -1,3 +1,20 @@
+## Comparing the 2012 dump with the current
+
+Because of the difficulty of scraping the CloudStore website in full, we decided to limit our attention to the products verifying either of the conditions described below:
+
+- they contain the word "data" in their description
+- they contain the word "yes" in the column named "General: Open Standards supported and documented?" in the 2012 dump and "Do you company with the Government Open Standards Principles (see: http://www.cabinetoffice.gov.uk/openstandards)?" on the current website
+
+This is justified by the fact that many products match the latter condition without matching the former. In the 2012 dump only there are  
+
+"data" 97
+"open" 16
+"General: Open Standards supported (...)" 643
+
+
+
+The documentation below is outdated
+
 ## Proxy API server
 The following APIs ara available:
 

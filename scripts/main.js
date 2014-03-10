@@ -63,7 +63,8 @@ var fetchProductById = function (productId, callback) {
 
 var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
-		// note that the call below can return duplicate results!
+		// note, I have demonstrated experimentally that the call below can 
+		// return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode !== 200) {
 				console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?p=" + pageNo + "&q=" + encodedSearchText + " . Aborting.");
@@ -84,9 +85,11 @@ var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
 
 var fullTextSearch = function (searchKeywordsArray, callback) {
 	searchKeywordsArray = [ ].concat(searchKeywordsArray || [ ]);
+	searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		var encodedSearchText = encodeURIComponent(searchKeywordsArray.join("+or+"));
-		// note that the call below can return duplicate results!
+		// note, I have demonstrated experimentally that the call below can 
+		// return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode !== 200) {
 				console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?q=" + encodedSearchText + " . Aborting.");
@@ -148,5 +151,10 @@ var dump = function (searchKeywordsArray, outputFilename, callback) {
 fetchProductById("product id health-and-safety-risk-assessment-13313", function (err, product) {
 	console.log(product);
 });
-*/
 dump(argv._, argv.out, function () { });
+*/
+var searchKeywordsArray = [ "open data" ].concat(searchKeywordsArray || [ ]);
+searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
+fullTextSearchPage(searchKeywordsArray, 1, function (err, productIds) {
+	console.log(productIds.join("\n"));
+});
