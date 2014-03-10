@@ -110,7 +110,7 @@ var dump = function (searchKeywordsArray, outputFilename, callback) {
 	fullTextSearch(searchKeywordsArray, function (err, productIds) {
 		log("Completed.");
 		log("Fetching product detail data for product id...");
-		async.map(productIds, function (id, callback) {
+		async.mapSeries(productIds, function (id, callback) {
 			log("... " + id);
 			fetchProductById(id, function (err, product) {
 				// this loop "flattens" the hierarchical structure of the record
