@@ -3,8 +3,8 @@ var argv = require("optimist")
 		.demand([ "out" ])
 		.alias("out", "o")
 		.alias("quiet", "q")
-		.default("tl", 300)	
-		.default("td", 150)	
+		.default("tl", 800)	
+		.default("td", 400)	
 		.argv,
 	async = require('async'),
 	cheerio = require('cheerio'),
