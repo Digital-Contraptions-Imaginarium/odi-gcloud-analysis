@@ -1,0 +1,13 @@
+Open Data Consultancies
+=======================
+
+This is test of generating static HTML tables from queries in R over the data 
+dumped from the CloudStore website.
+
+```{r echo=FALSE, message=FALSE, results='asis', prompt=FALSE, dpi=600}
+library(dplyr)
+d <- read.csv("../analysis/test_dump_keyword_is_data.csv", stringsAsFactors = FALSE)
+d <- d[grep("data", d$description, ignore.case = TRUE), c("id", "sku", "name", "description")]
+d <- d[grep("consultancy", d$description, ignore.case = TRUE), c("id", "sku", "name", "description")]
+kable(head(d), row.names = FALSE, format = "html")
+```
