@@ -18,7 +18,7 @@ var argv = require("optimist")
 	_str = require('underscore.string');
 _.mixin(_str.exports());
 
-var PRODUCT_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.td)),
+var PRODUCT_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.td))),
 	LIST_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.tl)));
 
 var log = !argv.quiet ? function (s) {
@@ -30,30 +30,32 @@ var fetchProductById = function (productId, callback) {
 	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
 		request('http://govstore.service.gov.uk/cloudstore/' + productId, function (error, response, html) {
 			var product = null;
-			if (!error && response.statusCode == 200) {
-				var $ = cheerio.load(html);
-				product = { id: productId, details: { }, supplier: { }, docs: { } };
-				product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
-				// note that the reg exp below's objective is just to extract 
-				// value off the clutter, not to get a valid, parseable number
-				product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
-				product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
-				product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
-				product.description = _.trim($('#short-desc').text());
-				$('#full-attributes-table tr').each(function (i, element) {
-					if (!$(this).hasClass('details-tr')) {
-						product.details[$('th', this).text()] = _.trim($('td', this).text());
-					}
-				});
-				$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
-					product.supplier[$('td', this).eq(0).text()] = _.trim($('td', this).eq(1).text());
-				});
-				// does the code below breaks if more documents have the same 
-				// name?
-				$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
-					product.docs[$('a', this).text()] = _.trim($('a', this).attr('href'));
-				});
-			} 
+			if (error || response.statusCode !== 200) {
+				console.error("Error fetching http://govstore.service.gov.uk/cloudstore/" + productId + " . Aborting.");
+				process.exit(1);
+			}
+			var $ = cheerio.load(html);
+			product = { id: productId, details: { }, supplier: { }, docs: { } };
+			product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
+			// note that the reg exp below's objective is just to extract 
+			// value off the clutter, not to get a valid, parseable number
+			product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
+			product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
+			product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
+			product.description = _.trim($('#short-desc').text());
+			$('#full-attributes-table tr').each(function (i, element) {
+				if (!$(this).hasClass('details-tr')) {
+					product.details[$('th', this).text()] = _.trim($('td', this).text());
+				}
+			});
+			$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
+				product.supplier[$('td', this).eq(0).text()] = _.trim($('td', this).eq(1).text());
+			});
+			// does the code below breaks if more documents have the same 
+			// name?
+			$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
+				product.docs[$('a', this).text()] = _.trim($('a', this).attr('href'));
+			});
 			callback(error, product);
 		});
 	});
@@ -63,8 +65,8 @@ var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		// note that the call below can return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
-			if (error || response.statusCode != 200) {
-				console.log("Error fetching the a list of products. Exiting...");
+			if (error || response.statusCode !== 200) {
+				console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?p=" + pageNo + "&q=" + encodedSearchText + " . Aborting.");
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
@@ -86,8 +88,8 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 		var encodedSearchText = encodeURIComponent(searchKeywordsArray.join("+or+"));
 		// note that the call below can return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + encodedSearchText, function (error, response, html) {
-			if (error || response.statusCode != 200) {
-				console.log("Error fetching the a list of products. Exiting...");
+			if (error || response.statusCode !== 200) {
+				console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?q=" + encodedSearchText + " . Aborting.");
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
@@ -106,9 +108,11 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 var dump = function (searchKeywordsArray, outputFilename, callback) {
 	log("Fetching the full list of product ids matching the specified search terms...");
 	fullTextSearch(searchKeywordsArray, function (err, productIds) {
+		log("Completed.");
+		log("Fetching product detail data for product id...");
 		async.map(productIds, function (id, callback) {
+			log("... " + id);
 			fetchProductById(id, function (err, product) {
-				log("Fetching product detail data for product id " + id);
 				// this loop "flattens" the hierarchical structure of the record
 				[ "details", "supplier", "docs" ].forEach(function (groupName) {
 					Object.keys(product[groupName]).forEach(function (key) {
