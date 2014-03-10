@@ -1,5 +1,5 @@
 var argv = require("optimist")
-		.usage('Usage: $0 <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--tl <max list requests to server per hour>] [--td <max product details requests to server per hour>] [--quiet]')
+		.usage('Usage: $0 <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
 		.demand([ "out" ])
 		.alias("out", "o")
 		.alias("quiet", "q")
@@ -96,6 +96,8 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p').text().match(/Items (\d+) to (\d+) of (\d+)/),
 				pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
 				noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
+			// note, async.reduce works in series over the input, hence is 
+			// suitable for the underlying throttling
 			async.reduce(_.range(1, noOfPages + 1), [ ], function (memo, pageNo, callback) {
 				fullTextSearchPage(encodedSearchText, pageNo, function (err, results) {
 					callback(err, _.uniq(memo.concat(results)));
