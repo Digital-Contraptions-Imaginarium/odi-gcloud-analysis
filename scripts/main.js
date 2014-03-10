@@ -18,8 +18,8 @@ var argv = require("optimist")
 	_str = require('underscore.string');
 _.mixin(_str.exports());
 
-var PRODUCT_FETCH_THROTTLING = new RateLimiter(parseInt(argv.td), 'hour'),
-	LIST_FETCH_THROTTLING = new RateLimiter(parseInt(argv.tl), 'hour');
+var PRODUCT_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.td)),
+	LIST_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.tl)));
 
 var log = !argv.quiet ? function (s) {
 		    var entryDate = new Date();
@@ -139,8 +139,8 @@ var dump = function (searchKeywordsArray, outputFilename, callback) {
 }
 
 /*
-fetchProductById("acquia-elite-support-hosting", function (err, product) {
-	console.log(product.pricing);
+fetchProductById("product id health-and-safety-risk-assessment-13313", function (err, product) {
+	console.log(product);
 });
 */
 dump(argv._, argv.out, function () { });
