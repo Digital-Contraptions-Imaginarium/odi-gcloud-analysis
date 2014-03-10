@@ -18,6 +18,11 @@ var argv = require("optimist")
 	_str = require('underscore.string');
 _.mixin(_str.exports());
 
+var FIELDS_RENAME_MAP = [
+	{ from: "Do you company with the Government Open Standards Principles (see: http://www.cabinetoffice.gov.uk/openstandards)?",
+	  to: "government_open_standards_compliant" }
+]
+
 var PRODUCT_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.td))),
 	LIST_FETCH_THROTTLING = new RateLimiter(1, Math.floor(3600000 / parseInt(argv.tl)));
 
@@ -45,11 +50,17 @@ var fetchProductById = function (productId, callback) {
 			product.description = _.trim($('#short-desc').text());
 			$('#full-attributes-table tr').each(function (i, element) {
 				if (!$(this).hasClass('details-tr')) {
-					product.details[$('th', this).text()] = _.trim($('td', this).text());
+					var fieldName = _.trim($('th', this).text()),
+						fieldReplacement = _.find(FIELDS_RENAME_MAP, function (rule) { return rule.from === fieldName; });
+					if(fieldReplacement) fieldName = fieldReplacement.to;
+					product.details[fieldName] = _.trim($('td', this).text());
 				}
 			});
 			$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
-				product.supplier[$('td', this).eq(0).text()] = _.trim($('td', this).eq(1).text());
+				var fieldName = _.trim($('td', this).eq(0).text()),
+					fieldReplacement = _.find(FIELDS_RENAME_MAP, function (rule) { return rule.from === fieldName; });
+				if(fieldReplacement) fieldName = fieldReplacement.to;
+				product.supplier[fieldName] = _.trim($('td', this).eq(1).text());
 			});
 			// does the code below breaks if more documents have the same 
 			// name?
@@ -96,9 +107,17 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
-				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p').text().match(/Items (\d+) to (\d+) of (\d+)/),
+				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p').text().match(/Items (\d+) to (\d+) of (\d+)/);
+			if (temp) {
+				// multiple results pages
 				pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
 				noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
+			} else {
+				// one page of results only
+				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p strong').text().match(/(\d+) Item\(s\)/);
+				pageSize = temp[1];
+				noOfPages = 1;
+			}
 			// note, async.reduce works in series over the input, hence is 
 			// suitable for the underlying throttling
 			async.reduce(_.range(1, noOfPages + 1), [ ], function (memo, pageNo, callback) {
@@ -151,10 +170,10 @@ var dump = function (searchKeywordsArray, outputFilename, callback) {
 fetchProductById("product id health-and-safety-risk-assessment-13313", function (err, product) {
 	console.log(product);
 });
-dump(argv._, argv.out, function () { });
-*/
 var searchKeywordsArray = [ "open data" ].concat(searchKeywordsArray || [ ]);
 searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
 fullTextSearchPage(searchKeywordsArray, 1, function (err, productIds) {
 	console.log(productIds.join("\n"));
 });
+*/
+dump(argv._, argv.out, function () { });
