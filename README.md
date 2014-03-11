@@ -1,3 +1,28 @@
+## cloudstore_dump.js command line tool
+
+The objective of the *cloudstore_dump.js* tool is to scrape HM Government's "CloudStore" website at [http://govstore.service.gov.uk/cloudstore](http://govstore.service.gov.uk/cloudstore) in order to:
+
+- support users into identifying and save to a machine-readable format relevant records, and
+- produce figures suitable to measure change in the portfolio of products in time
+
+### Usage
+
+    node cloudstore_dump.js <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]
+
+*search keywords*: the dump will contain only those products whose description contains any of the specified keywords. Combined terms should be specified in quotes, e.g.:
+
+    node cloudstore_dump.js "open data" consultancy --out opendata_consultancies.csv
+
+*out*: the required output CSV file
+
+*total* (optional): also calculates the total number of products in CloudStore and prints it to standard output at completion. This can be time consuming as the number is calculated by fetching all pages of all lists of products by category for all categories. 
+
+*tl*/*td* (optional): these values are used to specify throttling on the script's requests to the server. *tl* specifies the max number of requests for lists of products and *td* the max number of requests for detail pages. The default values are respectively 360 and 120. Requests are equally distributed in time.   
+
+*quiet*: produces no output to standard output unless there are errors.
+
+# The documentation below is outdated
+
 ## Comparing the 2012 dump with the current
 
 Because of the difficulty of scraping the CloudStore website in full, we decided to limit our attention to the products verifying either of the conditions described below:
@@ -12,8 +37,6 @@ This is justified by the fact that many products match the latter condition with
 "General: Open Standards supported (...)" 643
 
 
-
-The documentation below is outdated
 
 ## Proxy API server
 The following APIs ara available:
