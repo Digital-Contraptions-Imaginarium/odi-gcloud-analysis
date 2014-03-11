@@ -1,10 +1,10 @@
 var argv = require("optimist")
-		.usage('Usage: $0 <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
+		.usage('Usage: $0 <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
 		.demand([ "out" ])
 		.alias("out", "o")
 		.alias("quiet", "q")
-		.default("tl", 800)	
-		.default("td", 400)	
+		.default("tl", 360)	
+		.default("td", 120)	
 		.argv,
 	async = require('async'),
 	cheerio = require('cheerio'),
@@ -73,29 +73,147 @@ var fetchProductById = function (productId, callback) {
 	});
 }
 
-var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
+var fetchAllCategories = function (callback) {
+
+	var fetchTopCategories = function (callback) {
+		LIST_FETCH_THROTTLING.removeTokens(1, function() {
+			request('http://govstore.service.gov.uk/cloudstore/', function (error, response, html) {
+				if (error || response.statusCode != 200) {
+					console.log("Error fetching the top categories. Exiting...");
+					process.exit(1);
+				}
+				var $ = cheerio.load(html),
+					categories = [ ];
+				$('#nav li.level0').each(function (i, element) {
+					categories.push({
+						name: $('a', this).eq(0).text().replace(/\n/g, '').toLowerCase().replace(/\(\w+\)/, ""),
+						url: $('a', this).eq(0).attr('href')
+					});
+				});
+				callback(null, categories);
+			});
+		});
+	};
+
+	var categories = { };
+	fetchTopCategories(function (err, topCategories) {
+		// eachSeries here is used just not to cause a burts of requests to
+		// the source website
+		async.eachSeries(topCategories, function (topCategory, callback) {
+			LIST_FETCH_THROTTLING.removeTokens(1, function() {
+				if (!categories[topCategory.name]) categories[topCategory.name] = { };
+				request(topCategory.url, function (error, response, html) {
+					if (error || response.statusCode != 200) {
+						console.log("Error fetching the complete list of categories. Exiting...");
+						process.exit(1);
+					}
+					var $ = cheerio.load(html);
+					$('#narrow-by-list2 dd ol li').each(function (i, element) {
+						categories[topCategory.name][$('a', this).text().toLowerCase().replace(/\(\w+\)/, "")] = { url: $('a', this).attr('href') };
+					});
+					callback(null);
+				});
+			});
+		}, function (err) {
+			callback(err, categories);
+		});	
+	});
+};
+
+var fetchAllProductsIds = function (callback) {
+	fetchAllCategories(function (err, categories) {
+		var allCategoriesUrls = Object.keys(categories).reduce(function (memo, topCategoryName) {
+			return memo.concat(Object.keys(categories[topCategoryName]).map(function (secondLevelCategoryName) {
+				return categories[topCategoryName][secondLevelCategoryName].url;
+			}));
+		}, [ ]);
+		async.reduce(allCategoriesUrls, [ ], function (memo, categoryUrl, callback) {
+			fetchProductsIdsByCategoryURL(categoryUrl, function (err, productIds) {
+				callback(err, _.uniq(memo.concat(productIds)));
+			});
+		}, function (err, productIds) {
+			callback(err, productIds.sort());
+		});
+	});
+};
+
+var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
+
+	// TODO: fetchProductsIdsByCategoryURLPage and fullTextSearchPage are 
+	// almost identical, do we really need two separate functions?
+	var fetchProductsIdsByCategoryURLPage = function (categoryUrl, pageNo, callback) {
+		var productIds = [ ];
+		LIST_FETCH_THROTTLING.removeTokens(1, function () {
+			request(categoryUrl + '/where/p/' + pageNo, function (error, response, html) {
+				if (error || response.statusCode != 200) {
+					console.log("Error fetching a list of products. Exiting...");
+					process.exit(1);
+				}
+				var $ = cheerio.load(html);
+				$('#products-list li').each(function (i, element) {
+					// TODO: how is it possible here that I match more a's than the
+					// expected ones, and that they do not have href attributes?
+					var found = $('div.product-shop.grid12-9.persistent-grid2-1 div h2 a', this).attr('href');
+					if (found) {
+						productIds.push(found.match(/[^\/]+$/)[0]);
+					}
+				});
+				callback(null, productIds);
+			});
+		});
+	}
+
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
-		// note, I have demonstrated experimentally that the call below can 
-		// return duplicate results!
-		request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
-			if (error || response.statusCode !== 200) {
-				console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?p=" + pageNo + "&q=" + encodedSearchText + " . Aborting.");
+		request(categoryUrl, function (error, response, html) {
+			if (error || response.statusCode != 200) {
+				console.log("Error fetching the a list of products. Exiting...");
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
-				productIds = [ ];
-			$('#products-list li').each(function (i, element) {
-				var temp = $('h2.product-name a', this).attr('href');
-				if (temp){
-					productIds.push(temp.match(/[^\/]+$/)[0]);
-				}
-			});
-			callback(null, _.uniq(productIds));
+				temp = $('div.m-block.mb-category-products div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/);
+			if (temp) {
+				// multiple results pages
+				pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
+				noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
+			} else {
+				// one page of results only
+				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p strong').text().match(/(\d+) Item\(s\)/);
+				pageSize = temp[1];
+				noOfPages = 1;
+			}
+			async.reduce(_.range(1, noOfPages + 1), [ ], function (memo, pageNo, callback) {
+				fetchProductsIdsByCategoryURLPage(categoryUrl, pageNo, function (err, results) {
+					callback(err, memo.concat(results));
+				});
+			}, callback);
 		});
 	});
-}
+};
 
 var fullTextSearch = function (searchKeywordsArray, callback) {
+
+	var fullTextSearchPage = function (encodedSearchText, pageNo, callback) {
+		LIST_FETCH_THROTTLING.removeTokens(1, function () {
+			// note, I have demonstrated experimentally that the call below can 
+			// return duplicate results!
+			request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
+				if (error || response.statusCode !== 200) {
+					console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?p=" + pageNo + "&q=" + encodedSearchText + " . Aborting.");
+					process.exit(1);
+				}
+				var $ = cheerio.load(html),
+					productIds = [ ];
+				$('#products-list li').each(function (i, element) {
+					var temp = $('h2.product-name a', this).attr('href');
+					if (temp){
+						productIds.push(temp.match(/[^\/]+$/)[0]);
+					}
+				});
+				callback(null, _.uniq(productIds));
+			});
+		});
+	}
+
 	searchKeywordsArray = [ ].concat(searchKeywordsArray || [ ]);
 	searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
@@ -167,9 +285,11 @@ var dump = function (searchKeywordsArray, outputFilename, callback) {
 	});	
 }
 
+
 /*
-fetchProductById("product id health-and-safety-risk-assessment-13313", function (err, product) {
-	console.log(product);
+fetchAllProductsIds(function (err, productIds) {
+	console.log(productIds);
+	console.log(productIds.length);
 });
 var searchKeywordsArray = [ "open data" ].concat(searchKeywordsArray || [ ]);
 searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
@@ -177,4 +297,20 @@ fullTextSearchPage(searchKeywordsArray, 1, function (err, productIds) {
 	console.log(productIds.join("\n"));
 });
 */
-dump(argv._, argv.out, function () { });
+var noOfProducts = null;
+async.parallel([
+	// the actual dump of products data matching the search strings
+	// function (callback) { dump(argv._, argv.out, callback); },
+	// TODO: I don't like the design of what I've done below
+	// the calculation of the number of total products
+	(!argv.total || argv.quiet) ? 
+		function (callback) { callback(null); } :
+		function (callback) { 
+			fetchAllProductsIds(function (err, productsIds) { 
+				noOfProducts = productsIds.length;
+				callback(err); 
+			});
+		}
+], function (err) {
+	if (argv.total) log('The total number of records in CloudStore is ' + noOfProducts + '.');
+})
