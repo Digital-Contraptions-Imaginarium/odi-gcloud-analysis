@@ -7,7 +7,7 @@ The objective of the *cloudstore_dump.js* tool is to scrape HM Government's "Clo
 
 ### Usage
 
-    node cloudstore_dump.js <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]
+    node cloudstore_dump.js <search keyword> [<search keyword ...>] --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]
 
 *search keywords*: the dump will contain only those products whose description contains any of the specified keywords. Combined terms should be specified in quotes, e.g.:
 

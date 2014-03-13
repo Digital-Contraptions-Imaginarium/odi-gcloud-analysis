@@ -1,5 +1,5 @@
 var argv = require("optimist")
-		.usage('Usage: $0 <search keyword> [<search keyword ...>]wor --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
+		.usage('Usage: $0 <search keyword> [<search keyword ...>] --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
 		.demand([ "out" ])
 		.alias("out", "o")
 		.alias("quiet", "q")
@@ -170,14 +170,14 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
-				temp = $('div.m-block.mb-category-products div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/);
+				temp = $('div.category-products div div.sorter p.amount').text().match(/Items (\d+) to (\d+) of (\d+)/);
 			if (temp) {
 				// multiple results pages
 				pageSize = parseInt(temp[2]) - parseInt(temp[1]) + 1,
 				noOfPages = Math.ceil(parseInt(temp[3]) / pageSize);
 			} else {
 				// one page of results only
-				temp = $('#solr_search_result_page_container div.category-products div.toolbar div p strong').text().match(/(\d+) Item\(s\)/);
+				temp = $('div.category-products div.toolbar div p strong').text().match(/(\d+) Item\(s\)/);
 				pageSize = temp[1];
 				noOfPages = 1;
 			}
@@ -300,7 +300,7 @@ fullTextSearchPage(searchKeywordsArray, 1, function (err, productIds) {
 var noOfProducts = null;
 async.parallel([
 	// the actual dump of products data matching the search strings
-	// function (callback) { dump(argv._, argv.out, callback); },
+	function (callback) { dump(argv._, argv.out, callback); },
 	// TODO: I don't like the design of what I've done below
 	// the calculation of the number of total products
 	(!argv.total || argv.quiet) ? 
