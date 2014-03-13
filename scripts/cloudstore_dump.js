@@ -248,59 +248,51 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 	});
 };
 
-var dump = function (searchKeywordsArray, outputFilename, callback) {
+var dumpByProductIds = function (productIds, outputFilename, callback) {
+	log("Fetching product detail data for product id...");
+	async.mapSeries(productIds, function (id, callback) {
+		log("... " + id);
+		fetchProductById(id, function (err, product) {
+			// this loop "flattens" the hierarchical structure of the record
+			[ "details", "supplier", "docs" ].forEach(function (groupName) {
+				Object.keys(product[groupName]).forEach(function (key) {
+					product[groupName + "_" + key] = product[groupName][key];
+				});
+				delete product[groupName];
+			});
+			callback(null, product);
+		});
+	}, function (err, products) {
+		csv()
+			.from.array(products)
+			.to.stream(fs.createWriteStream(outputFilename), {
+					header: true,
+					// the line below identifies all possible column names
+					// as the union of the defined keys of each product
+					columns: _.union(_.flatten(_.map(products, function (product) { return _.keys(product); }))).sort()
+				})
+			.on('close', function (count) {
+				log('Writing completed. Number of records processed: ' + count);
+				callback(null);
+			})
+			.on('error', function (error) {
+				log(error.message);
+			});
+	});
+}
+
+var dumpBySearchKeywords = function (searchKeywordsArray, outputFilename, callback) {
 	log("Fetching the full list of product ids matching the specified search terms...");
 	fullTextSearch(searchKeywordsArray, function (err, productIds) {
 		log("Completed.");
-		log("Fetching product detail data for product id...");
-		async.mapSeries(productIds, function (id, callback) {
-			log("... " + id);
-			fetchProductById(id, function (err, product) {
-				// this loop "flattens" the hierarchical structure of the record
-				[ "details", "supplier", "docs" ].forEach(function (groupName) {
-					Object.keys(product[groupName]).forEach(function (key) {
-						product[groupName + "_" + key] = product[groupName][key];
-					});
-					delete product[groupName];
-				});
-				callback(null, product);
-			});
-		}, function (err, products) {
-			csv()
-				.from.array(products)
-				.to.stream(fs.createWriteStream(outputFilename), {
-						header: true,
-						// the line below identifies all possible column names
-						// as the union of the defined keys of each product
-						columns: _.union(_.flatten(_.map(products, function (product) { return _.keys(product); }))).sort()
-					})
-				.on('close', function (count) {
-					log('Writing completed. Number of records processed: ' + count);
-					callback(null);
-				})
-				.on('error', function (error) {
-					log(error.message);
-				});
-		});
-	});	
+		dumpByProductIds(productIds, outputFilename, callback);
+	});
 }
 
-
-/*
-fetchAllProductsIds(function (err, productIds) {
-	console.log(productIds);
-	console.log(productIds.length);
-});
-var searchKeywordsArray = [ "open data" ].concat(searchKeywordsArray || [ ]);
-searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
-fullTextSearchPage(searchKeywordsArray, 1, function (err, productIds) {
-	console.log(productIds.join("\n"));
-});
-*/
 var noOfProducts = null;
 async.parallel([
 	// the actual dump of products data matching the search strings
-	function (callback) { dump(argv._, argv.out, callback); },
+	function (callback) { dumpBySearchKeywords(argv._, argv.out, callback); },
 	// TODO: I don't like the design of what I've done below
 	// the calculation of the number of total products
 	(!argv.total || argv.quiet) ? 
