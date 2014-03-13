@@ -81,7 +81,7 @@ var fetchAllCategories = function (callback) {
 		LIST_FETCH_THROTTLING.removeTokens(1, function() {
 			request('http://govstore.service.gov.uk/cloudstore/', function (error, response, html) {
 				if (error || response.statusCode != 200) {
-					console.log("Error fetching the top categories. Exiting...");
+					console.error("Error fetching the top categories. Exiting...");
 					process.exit(1);
 				}
 				var $ = cheerio.load(html),
@@ -106,7 +106,7 @@ var fetchAllCategories = function (callback) {
 				if (!categories[topCategory.name]) categories[topCategory.name] = { };
 				request(topCategory.url, function (error, response, html) {
 					if (error || response.statusCode != 200) {
-						console.log("Error fetching the complete list of categories. Exiting...");
+						console.error("Error fetching the complete list of categories. Exiting...");
 						process.exit(1);
 					}
 					var $ = cheerio.load(html);
@@ -148,7 +148,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 		LIST_FETCH_THROTTLING.removeTokens(1, function () {
 			request(categoryUrl + '/where/p/' + pageNo, function (error, response, html) {
 				if (error || response.statusCode != 200) {
-					console.log("Error fetching a list of products. Exiting...");
+					console.error("Error fetching a list of products. Exiting...");
 					process.exit(1);
 				}
 				var $ = cheerio.load(html);
@@ -168,7 +168,7 @@ var fetchProductsIdsByCategoryURL = function (categoryUrl, callback) {
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
 		request(categoryUrl, function (error, response, html) {
 			if (error || response.statusCode != 200) {
-				console.log("Error fetching the a list of products. Exiting...");
+				console.error("Error fetching the a list of products. Exiting...");
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
@@ -200,7 +200,7 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 			// return duplicate results!
 			request('http://govstore.service.gov.uk/cloudstore/search/?p=' + pageNo + '&q=' + encodedSearchText, function (error, response, html) {
 				if (error || response.statusCode !== 200) {
-					console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?p=" + pageNo + "&q=" + encodedSearchText + " . Aborting.");
+					console.error("Error fetching http://govstore.service.gov.uk/cloudstore/search/?p=" + pageNo + "&q=" + encodedSearchText + " . Aborting.");
 					process.exit(1);
 				}
 				var $ = cheerio.load(html),
@@ -224,7 +224,7 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 		// return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + encodedSearchText, function (error, response, html) {
 			if (error || response.statusCode !== 200) {
-				console.log("Error fetching http://govstore.service.gov.uk/cloudstore/search/?q=" + encodedSearchText + " . Aborting.");
+				console.error("Error fetching http://govstore.service.gov.uk/cloudstore/search/?q=" + encodedSearchText + " . Aborting.");
 				process.exit(1);
 			}
 			var $ = cheerio.load(html),
@@ -308,5 +308,6 @@ async.parallel([
 			});
 		}
 ], function (err) {
+	if (err) log('Errors were experienced during the execution of the script.');
 	if (argv.total) log('The total number of records in CloudStore is ' + noOfProducts + '.');
 })
