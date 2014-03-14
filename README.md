@@ -7,13 +7,15 @@ The objective of the *cloudstore_dump.js* tool is to scrape HM Government's "Clo
 
 ### Usage
 
-    node cloudstore_dump.js <search keyword> [<search keyword ...>] --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]
+    node cloudstore_dump.js <search keyword> [<search keyword ...>] --out <output CSV filename> [--cache <caching folder path>] [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]
 
 *search keywords*: the dump will contain only those products whose description contains any of the specified keywords. Combined terms should be specified in quotes, e.g.:
 
     node cloudstore_dump.js "open data" consultancy --out opendata_consultancies.csv
 
 *out*: the required output CSV file
+
+*cache*: if a path is specified, one JSON file for each product is saved here as it is read from the website. Once a product's file exists, that product won't be scraped agan from the CloudStore website but the cache will be used instead.
 
 *total* (optional): also calculates the total number of products in CloudStore and prints it to standard output at completion. This can be time consuming as the number is calculated by fetching all pages of all lists of products by category for all categories. 
 

@@ -1,6 +1,7 @@
 var argv = require("optimist")
-		.usage('Usage: $0 <search keyword> [<search keyword ...>] --out <output CSV filename> [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
+		.usage('Usage: $0 <search keyword> [<search keyword ...>] --out <output CSV filename> [--cache <caching folder path>] [--total] [--tl <max no. of list requests to server per hour>] [--td <max no. of product details requests to server per hour>] [--quiet]')
 		.demand([ "out" ])
+		.alias("cache", "c")
 		.alias("out", "o")
 		.alias("quiet", "q")
 		.default("tl", 360)	
@@ -10,6 +11,7 @@ var argv = require("optimist")
 	cheerio = require('cheerio'),
 	csv = require('csv'),
 	fs = require('fs'),
+	path = require('path'),
 	request = require('request'),
 	RateLimiter = require('limiter').RateLimiter,
 	// note that the version of underscore I am using is the latest specified
@@ -39,40 +41,45 @@ var fetchProductById = function (productId, callback) {
 		return fieldReplacement ? fieldReplacement.to : _.underscored(fieldName.replace(/[^\w ]/g, "").toLowerCase());
 	}
 
-	PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
-		request('http://govstore.service.gov.uk/cloudstore/' + productId, function (error, response, html) {
-			var product = null;
-			if (error || response.statusCode !== 200) {
-				console.error("Error fetching http://govstore.service.gov.uk/cloudstore/" + productId + " . Aborting.");
-				console.error(error);
-				callback(error, null);
-			} else {
-				var $ = cheerio.load(html);
-				product = { id: productId, details: { }, supplier: { }, docs: { } };
-				product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
-				// note that the reg exp below's objective is just to extract 
-				// value off the clutter, not to get a valid, parseable number
-				product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
-				product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
-				product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
-				product.description = _.trim($('#short-desc').text());
-				$('#full-attributes-table tr').each(function (i, element) {
-					if (!$(this).hasClass('details-tr')) {
-						product.details[columnRename($('th', this).text())] = _.trim($('td', this).text());
-					}
-				});
-				$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
-					product.supplier[columnRename($('td', this).eq(0).text())] = _.trim($('td', this).eq(1).text());
-				});
-				// does the code below breaks if more documents have the same 
-				// name?
-				$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
-					product.docs[columnRename($('a', this).text())] = _.trim($('a', this).attr('href'));
-				});
-				callback(null, product);
-			}
+	if (argv.cache && fs.existsSync(path.join(argv.cache, productId + ".json"))) {
+		callback(null, JSON.parse(fs.readFileSync(path.join(argv.cache, productId + ".json"))));
+	} else {
+		PRODUCT_FETCH_THROTTLING.removeTokens(1, function() {
+			request('http://govstore.service.gov.uk/cloudstore/' + productId, function (error, response, html) {
+				var product = null;
+				if (error || response.statusCode !== 200) {
+					console.error("Error fetching http://govstore.service.gov.uk/cloudstore/" + productId + " . Aborting.");
+					console.error(error);
+					callback(error, null);
+				} else {
+					var $ = cheerio.load(html);
+					product = { id: productId, details: { }, supplier: { }, docs: { } };
+					product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
+					// note that the reg exp below's objective is just to extract 
+					// value off the clutter, not to get a valid, parseable number
+					product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
+					product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
+					product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
+					product.description = _.trim($('#short-desc').text());
+					$('#full-attributes-table tr').each(function (i, element) {
+						if (!$(this).hasClass('details-tr')) {
+							product.details[columnRename($('th', this).text())] = _.trim($('td', this).text());
+						}
+					});
+					$('#product_addtocart_form div.grid12-9 div.supplier-info-block table tr').each(function (i, element) {
+						product.supplier[columnRename($('td', this).eq(0).text())] = _.trim($('td', this).eq(1).text());
+					});
+					// does the code below breaks if more documents have the same 
+					// name?
+					$('#product_addtocart_form div.grid12-9 ul li').each(function (i, element) {
+						product.docs[columnRename($('a', this).text())] = _.trim($('a', this).attr('href'));
+					});
+					if (argv.cache) fs.writeFileSync(path.join(argv.cache, productId + ".json"), JSON.stringify(product));
+					callback(null, product);
+				}
+			});
 		});
-	});
+	}
 }
 
 var fetchAllCategories = function (callback) {
