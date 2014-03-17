@@ -19,6 +19,14 @@ This means that within the success of CloudStore's +1,025% growth in 22 months (
 
 ![Summary table](images/table_1.png)
 
+## Methodology
+
+The data on CloudStore is open data, licensed under [OGL](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2/), but it is not downloadable in machine-readable format. As scraping was the only option that was available, we studied the website and realised that the only practical way to identify all data-related products and services was to search the website for the "data" keyword using its own full-text search functionality and to scrape the resulting list. 
+
+We found out that the lists produced this way could both return duplicates and include products whose descriptions actually did *not* include the searched terms (e.g. when a keyword is part of the supplier name). All results were then further filtered to avoid duplicates and include only those products whose description contain the relevant keywords.
+
+To calculate the total number of products and services instead, our script crawled the website by using its two-layered category structure and listed all of its products. Once again, duplicates were identified and the resulting number of unique products considered into our calculations. 
+
 ## cloudstore_dump.js command line tool
 
 ### Usage
