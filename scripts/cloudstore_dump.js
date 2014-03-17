@@ -54,6 +54,7 @@ var fetchProductById = function (productId, callback) {
 				} else {
 					var $ = cheerio.load(html);
 					product = { id: productId, details: { }, supplier: { }, docs: { } };
+					product.cloudstoreUrl = 'http://govstore.service.gov.uk/cloudstore/' + productId;
 					product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
 					// note that the reg exp below's objective is just to extract 
 					// value off the clutter, not to get a valid, parseable number
