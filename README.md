@@ -1,10 +1,17 @@
-## CloudStore today
+## Summary
 
-On 14 March 2014 620 companies listed on CloudStore today 2,842 products and services whose description included the word "data", over a total of 12,775 products.
+The objective of this project is to:
+- make the profiles of products and services published on HM Government's "CloudStore" website at [http://govstore.service.gov.uk/cloudstore](http://govstore.service.gov.uk/cloudstore) available in a machine-readable format
+- use that data to analyse how, of all CloudStore products and services, *data* products have changed over the last two years by comparison with a dump of the same data from May 2012
+- produce lists of data products and services that address specific categories of services such as: hosting, consultancy, analysis, conversion or visualisation. 
+
+## Outcome
+
+On 14 March 2014, 620 companies listed on CloudStore today 2,842 products and services whose description included the word "data", over a total of 12,775 products.
 
 Of these, 35 companies offered 40 products and services whose description explicitly referred to "open data".
 
-In respect to the only previous snapshot we have of CloudStore, dated May 2012, we can see how the attention to data services and to open data in particular has increased. 
+In respect to the only previous snapshot we have of CloudStore, dated May 2012, we can see how the attention to data services and to open data in particular has increased substantially. 
 
 At the time, the whole of CloudStore was about 1/10th of the size of today and listed 1,135 products and services. We had 58 suppliers offering 96 data products and services, 1 of which only referred to "open data".
 
@@ -14,7 +21,7 @@ This means that within the success of CloudStore's +1,025% growth in 22 months (
 
 ## cloudstore_dump.js command line tool
 
-The objective of the *cloudstore_dump.js* tool is to scrape HM Government's "CloudStore" website at [http://govstore.service.gov.uk/cloudstore](http://govstore.service.gov.uk/cloudstore) in order to:
+The objective of the *cloudstore_dump.js* tool is to scrape CloudStore in order to:
 
 - support users into identifying and save to a machine-readable format relevant records, and
 - produce figures suitable to measure change in the portfolio of products in time
