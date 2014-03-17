@@ -58,7 +58,8 @@ var fetchProductById = function (productId, callback) {
 					product.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-name h1').text());
 					// note that the reg exp below's objective is just to extract 
 					// value off the clutter, not to get a valid, parseable number
-					product.pricing = $('span.price').text().match(/£([\d,.]*)/)[1];
+					product.pricing = _.trim($('span.price').text().match(/£([\d,.]*)/)[1] 
+						+ ($('span.price div.units') ? " " + $('span.price div.units').text() : ""));
 					product.sku = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.product-sku').text().split('Service ID: ')[1]);
 					product.supplier.name = _.trim($('#product_addtocart_form div.product-shop.grid12-7 div.from-supplier').text().split('From: ')[1]);
 					product.description = _.trim($('#short-desc').text());
