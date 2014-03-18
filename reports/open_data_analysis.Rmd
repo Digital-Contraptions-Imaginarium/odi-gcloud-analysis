@@ -14,18 +14,18 @@
     }
 </style>
 
-Open Data Consultancies
-=======================
+Open Data Analysis Services
+===========================
 
 Below is the list of products and services published on CloudStore whose
-description includes both the "open data" and "consultancy" keywords.
+description includes both the "open data" and "analysis" keywords.
 
 ```{r echo=FALSE, message=FALSE, results='asis', prompt=FALSE, dpi=600}
 library(dplyr)
 d <- read.csv("../analysis/test_dump_keyword_is_data.csv", stringsAsFactors = FALSE)
 d <- d[grep("open data", d$description, ignore.case = TRUE), ]
 # filter for this specific report
-d <- d[grep("consultancy", d$description, ignore.case = TRUE), c('supplier_name', 'name', 'cloudstoreUrl', 'description')] %.% arrange(supplier_name, name)
+d <- d[grep("analysis", d$description, ignore.case = TRUE), c('supplier_name', 'name', 'cloudstoreUrl', 'description')] %.% arrange(supplier_name, name)
 # make the name column into a link to the product url on CloudStore
 d$name <- paste0("<a href='", d$cloudstoreUrl, "'>", d$name, "</a>")
 # drop the cloudstoreUrl column
