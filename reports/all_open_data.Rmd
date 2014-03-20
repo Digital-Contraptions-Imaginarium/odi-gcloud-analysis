@@ -32,12 +32,11 @@ d$name <- paste0("<a href='", d$cloudstoreUrl, "'>", d$name, "</a>")
 d <- d[, !(names(d) %in% c('cloudstoreUrl'))]
 # strip \n characters, that would break the table once converted
 d$description <- gsub("\\n", " ", d$description)
-# TODO: limit the description to the early n words, the reg exp below is not 
-# working
-d$description <- grep("(\\w+\\s+){10}", d$description, value = TRUE)
 # rename the columns to be more reader-friendly
 names(d) <- c('Supplier name', 'Product / Service Name', 'Description')
-kable(d, format = "markdown")
+# why do I need the row below?
+row.names(d) <- as.integer(row.names(d))
+kable(d, format = "markdown", row.names = TRUE)
 ```
 
 This table was produced using [https://github.com/Digital-Contraptions-Imaginarium/odi-gcloud-analysis](https://github.com/Digital-Contraptions-Imaginarium/odi-gcloud-analysis) on `r as.character(Sys.time())`.
