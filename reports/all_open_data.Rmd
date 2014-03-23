@@ -18,13 +18,16 @@ Open Data Services
 ==================
 
 Below is the list of products and services published on CloudStore whose
-description includes both the "open data" and "analysis" keywords.
+description includes either the "open data" or "opendata" keywords.
 
 ```{r echo=FALSE, message=FALSE, results='asis', prompt=FALSE, dpi=600}
 library(dplyr)
-d <- read.csv("../analysis/test_dump_keyword_is_data.csv", stringsAsFactors = FALSE)
+d <- read.csv("../analysis/140322_keywords_are_open_data_and_opendata.csv", stringsAsFactors = FALSE)
 # filter for this specific report
-d <- d[grep("open data", d$description, ignore.case = TRUE), c('supplier_name', 'sku', 'name', 'cloudstoreUrl', 'description')] %.% arrange(supplier_name, name)
+d <- d[
+        grep("open.*data", d$description, ignore.case = TRUE), 
+        c('supplier_name', 'sku', 'name', 'cloudstoreUrl', 'description')
+    ] %.% arrange(supplier_name, name)
 # save CSV version before transformations for improved readability in Markdown
 write.csv(d, 'all_open_data.csv')
 # make the name column into a link to the product url on CloudStore

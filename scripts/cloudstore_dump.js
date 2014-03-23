@@ -228,7 +228,7 @@ var fullTextSearch = function (searchKeywordsArray, callback) {
 	searchKeywordsArray = [ ].concat(searchKeywordsArray || [ ]);
 	searchKeywordsArray = searchKeywordsArray.map(function (keyword) { return '"' + keyword + '"'; });
 	LIST_FETCH_THROTTLING.removeTokens(1, function () {
-		var encodedSearchText = encodeURIComponent(searchKeywordsArray.join("+or+"));
+		var encodedSearchText = searchKeywordsArray.join("+or+");
 		// note, I have demonstrated experimentally that the call below can 
 		// return duplicate results!
 		request('http://govstore.service.gov.uk/cloudstore/search/?q=' + encodedSearchText, function (error, response, html) {
