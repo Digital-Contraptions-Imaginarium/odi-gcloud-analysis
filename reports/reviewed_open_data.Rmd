@@ -14,22 +14,18 @@
     }
 </style>
 
-Open Data Services
-==================
+Open Data Services (reviewed)
+=============================
 
-Below is the list of products and services published on CloudStore whose
-description includes either the "open data" or "opendata" keywords.
+Below is the list of products and services published on CloudStore whose description includes either the "open data" or "opendata" keywords **and** that were identified by a reviewer to be genuine users of open data or having a proposition strongly centred around open data.
 
 ```{r echo=FALSE, message=FALSE, results='asis', prompt=FALSE, dpi=600}
 library(dplyr)
-d <- read.csv("../analysis/140322_keywords_are_open_data_and_opendata.csv", stringsAsFactors = FALSE, encoding = "UTF-8")
-# filter for this specific report
-d <- d[
-        grep("open.*data", d$description, ignore.case = TRUE),
-        c('supplier_name', 'sku', 'name', 'cloudstoreUrl', 'description')
-    ] %.% arrange(supplier_name, name)
-# save CSV version before transformations for improved readability in Markdown
-write.csv(d, 'all_open_data.csv')
+d <- read.csv("./all_open_data_REVIEWED.csv", stringsAsFactors = FALSE, encoding = "UTF-8")
+d <- d[ 
+        !is.na(d$extra_open_data_level) & d$extra_open_data_level > 0, 
+        c('extra_category', 'supplier_name', 'sku', 'name', 'cloudstoreUrl', 'description')
+    ] %.% arrange(extra_category, supplier_name, name)
 # make the name column into a link to the product url on CloudStore
 d$name <- paste0("<a href='", d$cloudstoreUrl, "'>", d$name, "</a>")
 # drop the cloudstoreUrl column
@@ -37,7 +33,7 @@ d <- d[, !(names(d) %in% c('cloudstoreUrl'))]
 # strip \n characters, that would break the table once converted
 d$description <- gsub("\\n", " ", d$description)
 # rename the columns to be more reader-friendly
-names(d) <- c('Supplier name', 'Product SKU', 'Product / Service Name', 'Description')
+names(d) <- c('Category', 'Supplier name', 'Product SKU', 'Product / Service Name', 'Description')
 # why do I need the row below?
 row.names(d) <- as.integer(row.names(d))
 kable(d, format = "markdown", row.names = TRUE)
