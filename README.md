@@ -38,6 +38,10 @@ TBD
 
 ## Methodology
 
+The diagram below illustrates the overall workflow of stages and components the projects developed through.
+
+![Workflow](images/workflow.png)
+
 ### Scraping 
 The data on CloudStore is open data, licensed under [OGL](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2/), but it is not downloadable in machine-readable format. As scraping was the only option that was available, we studied the website and realised that the only practical way to identify all data-related products and services was to search the website for the keywords we were interested in, using its own full-text search functionality and to scrape the resulting list. 
 
