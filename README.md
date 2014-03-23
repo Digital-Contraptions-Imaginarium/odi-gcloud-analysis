@@ -6,14 +6,14 @@ The objective of this project is to:
 - produce lists of open data products and services that address specific categories of services such as: hosting, consultancy, analysis, conversion or visualisation. 
 
 ## Table of contents
-- [Results](odi-gcloud-analysis#results)
-  - [The figures](odi-gcloud-analysis#the-figures)
-  - [The review](odi-gcloud-analysis#the-review)
-  - [The reports](odi-gcloud-analysis#the-reports)
-- [Methodology](odi-gcloud-analysis#methodology)
-  - [Scraping](odi-gcloud-analysis#scraping)
-  - [Reviewing](odi-gcloud-analysis#reviewing)
-- [The cloudstore_dump.js command line tool](odi-gcloud-analysis#cloudstore_dumpjs-command-line-tool)
+- [Results](#results)
+  - [The figures](#the-figures)
+  - [The review](#the-review)
+  - [The reports](#the-reports)
+- [Methodology](#methodology)
+  - [Scraping](#scraping)
+  - [Reviewing](#reviewing)
+- [The cloudstore_dump.js command line tool](#cloudstore_dumpjs-command-line-tool)
 
 ## Results
 
