@@ -18,16 +18,15 @@ The objective of this project is to:
 ## Results
 
 ### The figures
-**TO BE UPDATED**
-On 18 March 2014, 632 companies listed on CloudStore 2,852 products and services whose description included the word "data", over a total of 12,754 products.
+On 23 March 2014, 656 companies listed on CloudStore 3,116 products and services whose description included the word "data", over a total of 12,750 products.
 
-Of these, 16 companies offered 38 products and services whose description explicitly referred to "open data".
+Of these, 12 companies offered 22 products and services users that make explicit use of open data or have a proposition that is strongly centred around open data, as verified by one of our reviewers.
 
 In respect to the only previous snapshot we have of CloudStore, dated May 2012, we can see how the attention to data services and to open data in particular has increased substantially. 
 
 At the time, the whole of CloudStore was about 1/10th of the size of today and listed 1,135 products and services. We had 58 suppliers offering 96 data products and services, 1 of which only referred to "open data".
 
-This means that within the success of CloudStore's +1,024% growth in 22 months (112% month-on-month, like saying that it doubled in size every month), data services grew by +2,871% and open data services in particular by +3,700%.
+This means that within the success of CloudStore's +1,023% growth in 22 months (112% month-on-month, like saying that it doubled in size every month), services whose description refer to the "data" keyword grew by +3,146%. Open data services in particular grew by +2,100%.
 
 ![Summary table](images/table_1.png)
 
