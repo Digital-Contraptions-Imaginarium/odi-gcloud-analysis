@@ -29,7 +29,7 @@ d <- d[
         c('supplier_name', 'sku', 'name', 'cloudstoreUrl', 'description')
     ] %.% arrange(supplier_name, name)
 # save CSV version before transformations for improved readability in Markdown
-write.csv(d, 'all_open_data.csv')
+write.csv(d, 'all_open_data.csv', fileEncoding = "UTF-8")
 # make the name column into a link to the product url on CloudStore
 d$name <- paste0("<a href='", d$cloudstoreUrl, "'>", d$name, "</a>")
 # drop the cloudstoreUrl column
