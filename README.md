@@ -2,13 +2,14 @@
 
 The objective of this project is to:
 - make the profiles of products and services published on HM Government's "CloudStore" website at [http://govstore.service.gov.uk/cloudstore](http://govstore.service.gov.uk/cloudstore) available in a machine-readable format
-- use that data to analyse how, of all CloudStore products and services, *data* products have changed over the last two years by comparison with an available dump of the same data from May 2012
-- produce lists of data products and services that address specific categories of services such as: hosting, consultancy, analysis, conversion or visualisation. 
+- use that data to analyse how, of all CloudStore products and services, *open data* products have changed over the last two years by comparison with an available dump of the same data from May 2012
+- produce lists of open data products and services that address specific categories of services such as: hosting, consultancy, analysis, conversion or visualisation. 
 
 ## Outcome
 
 ### The figures
-On 18 March 2014, 632 companies listed on CloudStore today 2,852 products and services whose description included the word "data", over a total of 12,754 products.
+**TO BE UPDATED**
+On 18 March 2014, 632 companies listed on CloudStore 2,852 products and services whose description included the word "data", over a total of 12,754 products.
 
 Of these, 16 companies offered 38 products and services whose description explicitly referred to "open data".
 
@@ -20,22 +21,34 @@ This means that within the success of CloudStore's +1,024% growth in 22 months (
 
 ![Summary table](images/table_1.png)
 
-### The reports
-
 ### The review
-The services were further inspected "manually" to assess if the references to keywords in their descriptions were substantiated by some degree of fact or buzzwords. A good example of false positives is Atos' 15 services referencing "open data", none of which was found to be specific about open data. Each of those service descriptions ends with a list of > 100 keywords that go from "Oracle" to "web" to "mobile" and, of course,  "open data".
+Of the original 61 product and services referencing open data, only 22 showed to be genuine users of open data or having a proposition strongly centred around open data
 
-The reviewer graded the use of open data in the "extra_open_data_level" column of the CSV files whose filenames were postfixed with "_REVIEWED". The grades are 0 for products and services with a very loose connection with open data (as in the ATOS example above), 1 for products and services that are advertised to use open data (e.g. mapping services that integrate with Ordnance Survey's open data mapping products), 2 for products and services that have an open data proposition at their core and NA for "not applicable", e.g. duplicate entries. The reviewed CSVs also have an "extra_comments" column capturing the reviewer's comments.
+### The reports
+TBD
 
 ## Methodology
 
+### Scraping 
 The data on CloudStore is open data, licensed under [OGL](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2/), but it is not downloadable in machine-readable format. As scraping was the only option that was available, we studied the website and realised that the only practical way to identify all data-related products and services was to search the website for the keywords we were interested in, using its own full-text search functionality and to scrape the resulting list. 
 
-We found out that the lists produced this way could both return duplicates and include products whose descriptions actually did *not* include the searched terms (e.g. when a keyword is part of the supplier name). All results were then further filtered to avoid duplicates and include only those products whose description contain the relevant keywords.
+We found that the lists produced this way could:
+- return duplicates, 
+- include products whose descriptions actually did *not* include the searched terms (e.g. when a keyword is part of the supplier name), or
+- miss products whose description actually *did* include the search terms (e.g. some products that were listed when searching for "open data" did not show up when searching simply for "data"). 
+The last case in particular appears to be a bug of the CloudStore system but, because of our limited access to the system, we could not investigate further but just arrange workarounds to limit how our work was impacted by the issue.
+All results were then filtered to avoid duplicates and include only those products whose description contain the relevant keywords.
 
-It is also to be noted that some of the terms could be written differently, e.g. "open data" is written without spaces by some of the suppliers.
+It is also to be noted that some of the search terms could have alternative spellings, e.g. we found that several suppliers wrote "open data" without spaces.
 
 To calculate the total number of products and services instead, our script crawled the website by using its two-layered category structure and listed all of its products. Once again, duplicates were identified and the resulting number of unique products considered into our calculations. 
+
+### Reviewing
+Services that matched the "open data" and "opendata" keywords were inspected "manually" by a reviewer to assess if the references to open data were substantiated by some degree of fact or were rather attempts to just take advantage of open data as a buzzword. A good example of false positives identified by the review is Atos' 15 services referencing "open data", none of which was found to be specific about open data. Each of those service descriptions ends with a list of > 100 keywords that go from "Oracle" to "web" to "mobile" and, of course,  "open data".
+
+The reviewer graded the use of open data in the "extra_open_data_level" column of the CSV files whose filenames were postfixed with "_REVIEWED". The grades are 0 for products and services with a very loose connection with open data (as in the ATOS example above), 1 for products and services that are advertised to use open data (e.g. mapping services that integrate with Ordnance Survey's open data mapping products), 2 for products and services that have an open data proposition at their core and NA for "not applicable", e.g. duplicate entries. The reviewed CSVs also have an "extra_comments" column capturing the reviewer's comments.
+
+We considered only products and services scoring 1 or 2 to be genuine users of open data or having a proposition strongly centred around open data.
 
 ## cloudstore_dump.js command line tool
 
