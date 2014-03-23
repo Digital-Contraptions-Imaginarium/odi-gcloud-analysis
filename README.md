@@ -5,7 +5,17 @@ The objective of this project is to:
 - use that data to analyse how, of all CloudStore products and services, *open data* products have changed over the last two years by comparison with an available dump of the same data from May 2012
 - produce lists of open data products and services that address specific categories of services such as: hosting, consultancy, analysis, conversion or visualisation. 
 
-## Outcome
+## Table of contents
+- [Results](odi-gcloud-analysis#results)
+  - [The figures](odi-gcloud-analysis#the-figures)
+  - [The review](odi-gcloud-analysis#the-review)
+  - [The reports](odi-gcloud-analysis#the-reports)
+- [Methodology](odi-gcloud-analysis#methodology)
+  - [Scraping](odi-gcloud-analysis#scraping)
+  - [Reviewing](odi-gcloud-analysis#reviewing)
+- [The cloudstore_dump.js command line tool](odi-gcloud-analysis#cloudstore_dumpjs-command-line-tool)
+
+## Results
 
 ### The figures
 **TO BE UPDATED**
@@ -22,7 +32,7 @@ This means that within the success of CloudStore's +1,024% growth in 22 months (
 ![Summary table](images/table_1.png)
 
 ### The review
-Of the original 61 product and services referencing open data, only 22 showed to be genuine users of open data or having a proposition strongly centred around open data
+Services were reviewed "manually" by a reviewer to assess if the references to open data were substantiated by some degree of fact or were rather attempts to just take advantage of open data as a buzzword. The numbers above are the ones resulting following the review. 61 product and services originally referenced open data but only 22 showed in the end to be genuine users of open data or having a proposition strongly centred around open data.
 
 ### The reports
 TBD
@@ -50,7 +60,7 @@ The reviewer graded the use of open data in the "extra_open_data_level" column o
 
 We considered only products and services scoring 1 or 2 to be genuine users of open data or having a proposition strongly centred around open data.
 
-## cloudstore_dump.js command line tool
+## The cloudstore_dump.js command line tool
 
 ### Usage
 
