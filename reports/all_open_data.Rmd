@@ -23,9 +23,10 @@ description includes both the "open data" and "analysis" keywords.
 ```{r echo=FALSE, message=FALSE, results='asis', prompt=FALSE, dpi=600}
 library(dplyr)
 d <- read.csv("../analysis/test_dump_keyword_is_data.csv", stringsAsFactors = FALSE)
-d <- d[grep("open data", d$description, ignore.case = TRUE), c('supplier_name', 'name', 'cloudstoreUrl', 'description')] %.% arrange(supplier_name, name)
 # filter for this specific report
-# d <- d[grep("analysis", d$description, ignore.case = TRUE), ] 
+d <- d[grep("open data", d$description, ignore.case = TRUE), c('supplier_name', 'sku', 'name', 'cloudstoreUrl', 'description')] %.% arrange(supplier_name, name)
+# save CSV version before transformations for improved readability in Markdown
+write.csv(d, 'all_open_data.csv')
 # make the name column into a link to the product url on CloudStore
 d$name <- paste0("<a href='", d$cloudstoreUrl, "'>", d$name, "</a>")
 # drop the cloudstoreUrl column
@@ -33,7 +34,7 @@ d <- d[, !(names(d) %in% c('cloudstoreUrl'))]
 # strip \n characters, that would break the table once converted
 d$description <- gsub("\\n", " ", d$description)
 # rename the columns to be more reader-friendly
-names(d) <- c('Supplier name', 'Product / Service Name', 'Description')
+names(d) <- c('Supplier name', 'Product SKU', 'Product / Service Name', 'Description')
 # why do I need the row below?
 row.names(d) <- as.integer(row.names(d))
 kable(d, format = "markdown", row.names = TRUE)
