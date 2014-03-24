@@ -21,11 +21,11 @@ The objective of this project is to:
 ###The figures
 On 23 March 2014, 656 companies listed on CloudStore 3,116 products and services whose description included the word "data", over a total of 12,750 products.
 
-Of these, 12 companies offered 22 products and services users that make explicit use of open data or have a proposition that is strongly centred around open data, as verified by one of our reviewers.
+Of these, 12 companies offered 22 products and services that make explicit use of open data or have a proposition that is strongly centred around open data, as verified by one of our reviewers.
 
 In respect to the only previous snapshot we have of CloudStore, dated May 2012, we can see how the attention to data services and to open data in particular has increased substantially. At the time, the whole of CloudStore was about 1/10th of the size of today and listed 1,135 products and services. We had 58 suppliers offering 96 data products and services, 1 of which only referred to "open data".
 
-This means that within the success of CloudStore's +1,023% growth in 22 months (112% month-on-month, like saying that it doubled in size every month), services whose description refer to the "data" keyword grew by +3,146%. Open data services in particular grew by +2,100%.
+This means that within the success of CloudStore's +1,023% growth in 22 months (112% month-on-month, like saying that it doubled in size every month), services whose descriptions refer to "data" grew by +3,146%. Open data services in particular grew by +2,100%.
 
 ![Summary table](images/table_1.png)
 
@@ -102,4 +102,4 @@ We considered only products and services scoring 1 or 2 to be genuine open data 
 
 The data published on HM Government's CloudStore is open data, licensed under [OGL](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/2/). 
 
-![Digital Contraptions Imaginarium's logo](images/dicoim.png) odi-gcloud-analysis is a Digital Contraptions Imaginarium Ltd. project for the [Open Data Institute](http://theodi.org/).
+![Digital Contraptions Imaginarium's logo](images/dicoim.png) odi-gcloud-analysis is a [Digital Contraptions Imaginarium Ltd.](http://www.digitalcontraptionsimaginarium.co.uk/) project for the [Open Data Institute](http://theodi.org/).
