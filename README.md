@@ -46,9 +46,9 @@ The diagram below illustrates the overall workflow of stages and components the 
 ![Workflow](images/workflow.png)
 
 ###Scraping 
-The data on CloudStore is open data, licensed under [OGL](#licence), but it is not downloadable in machine-readable format. As scraping was the only option that was available, we studied the website and realised that the only practical way to identify all data-related products and services was to search the website for the keywords we were interested in, using its own full-text search functionality and to scrape the resulting list. 
+The data on CloudStore is open data, licensed under [OGL](#licence), but it is not downloadable in machine-readable format. As scraping was the only option that was available to ass to access the data programmaticaly, we studied the website and realised that the only way to identify products and services relevant to our investigation was to search the website for the keywords we were interested in, using its own full-text search functionality and to scrape the resulting list. 
 
-We found that the lists produced this way could:
+Unfortunately we found that the lists produced this way could:
 - return duplicates, 
 - include products whose descriptions actually did *not* include the searched terms (e.g. when a keyword is part of the supplier name), or
 - miss products whose description actually *did* include the search terms (e.g. some products that CloudStore lists when searching for "open data" do not show up when searching simply for "data"). 
